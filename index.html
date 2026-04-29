@@ -360,47 +360,264 @@ footer{background:var(--td);color:#fff}
 .stat{font-size:12px;color:var(--tm)}
 .stat strong{color:var(--g);font-weight:600}
 
-/* ── RESPONSIVE ──────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE  —  mobile-first, fully overhauled
+   Breakpoints: 900 · 768 · 600 · 480 · 380
+   ══════════════════════════════════════════════════════════ */
+
+/* ── 900 px  (tablet / small laptop) ─────────────────── */
 @media(max-width:900px){
+  /* NAV */
   .nav-links,.nav-search{display:none}
   .ham{display:flex}
-  .hero-cnt{padding:60px 24px;max-width:100%}
-  .hero-corners{padding:0 24px 24px}
-  .cats-sec,.gallery-sec{padding:48px 20px}
+  .nav-in{padding:0 20px;height:62px}
+  .nav-ic-lbl{display:none}               /* hide "Wishlist / Cart" labels */
+  .nav-ic{padding:4px 6px}
+
+  /* HERO */
+  .hero{min-height:480px}
+  .hero-cnt{padding:56px 28px;max-width:100%}
+  .hero-corners{padding:0 28px 24px}
+
+  /* SECTIONS */
+  .cats-sec{padding:52px 24px}
   .cats-grid{grid-template-columns:repeat(2,1fr);gap:20px}
-  .prods-wrap{padding:0 20px 48px}
-  .fbar{flex-direction:column}
+  .cat-img{width:150px;height:170px}
+
+  .prods-wrap{padding:0 24px 52px}
+  .fbar{flex-direction:column;gap:12px}
   .filter-r{width:100%;justify-content:space-between}
+
   .about-sec{grid-template-columns:1fr}
-  .about-img{min-height:260px}
-  .about-txt{padding:48px 24px}
-  .testi-sec{padding:48px 20px}
+  .about-img{min-height:260px;order:1}
+  .about-txt{padding:44px 28px;order:2}
+
+  .gallery-sec{padding:52px 24px}
+  .ggrid{grid-template-columns:repeat(2,1fr)}
+
+  .testi-sec{padding:52px 24px}
   .tgrid{grid-template-columns:1fr}
-  .contact-sec{padding:48px 20px}
+
+  .contact-sec{padding:52px 24px}
   .cinfo-row{grid-template-columns:1fr 1fr}
-  .cbody2{grid-template-columns:1fr}
+  .cbody2{grid-template-columns:1fr;gap:32px}
   .cimg-col{display:none}
-  .ft{grid-template-columns:1fr 1fr;gap:28px;padding:40px 20px}
-  .fb{padding:16px 20px}
+
+  .ft{grid-template-columns:1fr 1fr;gap:28px;padding:44px 24px 36px}
+  .fb{padding:16px 24px}
+
+  /* DRAWERS & MODALS */
   .mbox{grid-template-columns:1fr}
   .mimg{display:none}
-  .drawer{width:100%;right:-100%}
+  .drawer{width:92%;max-width:420px;right:-92%}
+  .drawer.open{right:0}
+
+  /* ADMIN */
   .adm-panel{max-width:100%}
   .img-row{grid-template-columns:56px 1fr}
   .img-actions{flex-direction:row;align-items:center;grid-column:1/-1}
   .stk-row{grid-template-columns:50px 1fr}
   .stk-qty-wrap,.stk-toggle{grid-column:2}
+
+  /* WHATSAPP BUTTON */
   .wa-lbl{display:none}
   .wa{padding:14px;border-radius:50%}
 }
-@media(max-width:600px){
-  .cats-grid{grid-template-columns:1fr 1fr;gap:14px}
-  .pgrid{grid-template-columns:repeat(2,1fr);gap:12px}
-  .cname{font-size:11px}
-  .cprice{font-size:12px}
-  .addbtn{font-size:9px;padding:5px 9px}
-  .ft{grid-template-columns:1fr}
+
+/* ── 768 px  (large phone / small tablet) ─────────────── */
+@media(max-width:768px){
+  /* TOPBAR — collapse to 2 lines; hide pipe separators on very small */
+  #topbar{padding:7px 16px;font-size:11px;line-height:1.55}
+
+  /* NAV */
+  .nav-in{padding:0 16px;height:58px;gap:10px}
+  .logo-t{font-size:22px}
+  .logo-s{font-size:7px;letter-spacing:.2em}
+
+  /* HERO */
+  .hero{min-height:440px}
+  .hero-cnt{padding:48px 20px}
+  .hero h1{font-size:clamp(28px,8vw,48px)}
+  .hero-sub{font-size:12px;letter-spacing:.16em}
+  .hero-corners{padding:0 20px 20px}
+  .hc-lnk{font-size:12px}
+
+  /* SECTION HEADINGS */
+  .sec-head{margin-bottom:34px}
+  .sec-head h2{font-size:24px}
+  .eyebrow{font-size:10px}
+
+  /* CATEGORIES */
+  .cats-sec{padding:44px 16px}
+  .cats-grid{grid-template-columns:repeat(2,1fr);gap:16px}
+  .cat-img{width:130px;height:148px}
+  .cat-nm{font-size:13px}
+
+  /* PRODUCTS */
+  .prods-wrap{padding:0 16px 44px}
+  .pgrid{grid-template-columns:repeat(2,1fr);gap:14px}
+  .pills{gap:5px}
+  .pill{font-size:9px;padding:4px 11px}
+
+  /* ABOUT */
+  .about-txt{padding:36px 20px}
+  .about-txt h2{font-size:22px}
+  .about-txt p{font-size:13px}
+
+  /* GALLERY */
+  .gallery-sec{padding:44px 16px}
+  .ggrid{grid-template-columns:1fr 1fr;gap:12px}
+
+  /* TESTIMONIALS */
+  .testi-sec{padding:44px 16px}
+  .tcard{padding:22px 20px}
+  .ttext{font-size:12px}
+
+  /* CONTACT */
+  .contact-sec{padding:44px 16px}
+  .cinfo-row{grid-template-columns:1fr 1fr;gap:0}
+  .cinfo-cell{padding:20px 14px}
+  .cinfo-cell h3{font-size:11px}
+  .cinfo-cell p{font-size:11px}
+  .frow{grid-template-columns:1fr}  /* stack form fields */
+
+  /* FOOTER */
+  .ft{grid-template-columns:1fr;gap:22px;padding:36px 16px 28px}
+  .fc h4{margin-bottom:12px}
+  .fc ul li a,.fc p{font-size:12px}
+  .fb{padding:14px 16px;font-size:10px}
+
+  /* MODAL */
+  .minfo{padding:28px 22px}
+  .mname{font-size:17px}
+  .mprice{font-size:26px}
 }
+
+/* ── 600 px  (typical phone landscape / small phone) ──── */
+@media(max-width:600px){
+  /* TOPBAR — single compact line */
+  #topbar{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:6px 12px;font-size:10.5px}
+
+  /* HERO */
+  .hero{min-height:400px}
+  .hero-cnt{padding:40px 16px}
+  .hero h1{font-size:clamp(26px,9vw,42px);line-height:1.08}
+  .hero-ctas{gap:10px}
+  .btn{padding:11px 22px;font-size:11px}
+
+  /* CATEGORIES */
+  .cats-grid{grid-template-columns:repeat(2,1fr);gap:12px}
+  .cat-img{width:110px;height:126px}
+  .cat-img img{width:65%;height:75%}
+
+  /* PRODUCTS */
+  .pgrid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .cname{font-size:11px;line-height:1.4}
+  .cprice{font-size:12px}
+  .cbrand{font-size:8px}
+  .addbtn{font-size:9px;padding:5px 9px}
+  .cbody{padding:11px 12px 13px}
+
+  /* GALLERY */
+  .ggrid{grid-template-columns:1fr 1fr;gap:10px}
+
+  /* CONTACT info */
+  .cinfo-row{grid-template-columns:1fr}
+  .cinfo-cell{border-bottom:1px solid var(--bd)}
+
+  /* FOOTER */
+  .ft{grid-template-columns:1fr}
+  .slinks{flex-wrap:wrap}
+}
+
+/* ── 480 px  (typical phone portrait) ────────────────── */
+@media(max-width:480px){
+  /* TOPBAR */
+  #topbar{font-size:10px;padding:6px 10px;letter-spacing:.01em}
+
+  /* NAV */
+  .nav-in{padding:0 12px;height:54px}
+  .logo-t{font-size:20px}
+  .logo-s{letter-spacing:.18em;font-size:6.5px}
+  /* keep only cart + hamburger; hide wishlist icon on xs */
+  .nav-ic:first-of-type{display:none}
+
+  /* HERO */
+  .hero{min-height:380px}
+  .hero-cnt{padding:36px 14px}
+  .hero h1{font-size:clamp(24px,10vw,38px)}
+  .hero-sub{font-size:11px;letter-spacing:.14em;margin-bottom:26px}
+  .hero-ctas{flex-direction:column;align-items:stretch;gap:9px}
+  .hero-ctas .btn{width:100%;justify-content:center;padding:13px}
+  .hero-corners{padding:0 14px 16px}
+  .hc-lnk{font-size:11px;letter-spacing:.1em}
+
+  /* HEADINGS */
+  .sec-head{margin-bottom:28px}
+  .sec-head h2{font-size:20px}
+
+  /* CATEGORIES */
+  .cats-sec{padding:36px 14px}
+  .cats-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .cat-img{width:100px;height:114px}
+  .cat-nm{font-size:12px}
+
+  /* PRODUCTS */
+  .prods-wrap{padding:0 14px 36px}
+  .pgrid{grid-template-columns:repeat(2,1fr);gap:9px}
+
+  /* GALLERY */
+  .gallery-sec{padding:36px 14px}
+  .ggrid{grid-template-columns:1fr;gap:12px}
+
+  /* TESTIMONIALS */
+  .testi-sec{padding:36px 14px}
+  .tgrid{grid-template-columns:1fr;gap:14px}
+  .tcard{padding:20px 16px}
+
+  /* CONTACT */
+  .contact-sec{padding:36px 14px}
+  .cinfo-row{grid-template-columns:1fr}
+
+  /* ABOUT */
+  .about-txt{padding:32px 16px}
+
+  /* FOOTER */
+  footer .ft{padding:28px 14px 20px;gap:18px}
+  footer .fc p,footer .fc ul li a{font-size:12px}
+  .fb{padding:12px 14px;font-size:10px}
+
+  /* WHATSAPP — shrink to icon only */
+  .wa{bottom:18px;right:14px;padding:12px}
+
+  /* ADMIN FAB */
+  .admin-fab{bottom:18px;left:14px;padding:10px 14px;font-size:11px}
+}
+
+/* ── 380 px  (very small phones, e.g. iPhone SE) ─────── */
+@media(max-width:380px){
+  /* Products fall to 1 column so cards aren't too tiny */
+  .pgrid{grid-template-columns:1fr;gap:12px}
+
+  /* Cats stay 2-col but smaller blobs */
+  .cat-img{width:88px;height:100px}
+  .cat-nm{font-size:11px}
+
+  /* Filter bar */
+  .fbar{gap:9px}
+  .filter-r{flex-direction:column;align-items:flex-start;gap:6px}
+  .sel{width:100%}
+  .rcount{font-size:11px}
+
+  /* Hero */
+  .hero-cnt{padding:30px 12px}
+  .hero h1{font-size:clamp(22px,11vw,34px)}
+
+  /* Nav */
+  .nav-in{padding:0 10px;height:52px}
+  .logo-t{font-size:18px}
+}
+
 
 /* ── LOGIN MODAL ──────────────────────────────────────── */
 .login-ov{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
@@ -574,10 +791,11 @@ footer{background:var(--td);color:#fff}
 .hs-arrow:hover{background:rgba(255,255,255,.32)}
 .hs-prev{left:20px;border-radius:0 4px 4px 0}
 .hs-next{right:20px;border-radius:4px 0 0 4px}
-.hs-dots{position:absolute;bottom:70px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:4}
+.hs-dots{position:absolute;bottom:76px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:4}
 .hs-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.5);cursor:pointer;transition:all .2s;border:none}
 .hs-dot.on{background:#fff;transform:scale(1.25)}
-@media(max-width:600px){.hs-arrow{display:none}}
+@media(max-width:768px){.hs-arrow{width:38px;height:48px;font-size:28px}.hs-dots{bottom:68px}}
+@media(max-width:600px){.hs-arrow{display:none}.hs-dots{bottom:58px}}
 </style>
 
 <!-- CATEGORIES -->
