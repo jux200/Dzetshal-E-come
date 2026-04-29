@@ -41,14 +41,14 @@ input,textarea,select{font-family:inherit}
 ul{list-style:none}
 
 /* ── TOPBAR ──────────────────────────────────────────── */
-#topbar{background:var(--g);color:rgba(255,255,255,.8);font-size:12px;font-weight:300;text-align:center;padding:9px 16px;letter-spacing:.04em;width:100%;overflow:hidden;transition:transform .3s ease,opacity .3s ease}
-#topbar.hidden{transform:translateY(-100%);opacity:0;pointer-events:none}
+#topbar{background:var(--g);color:rgba(255,255,255,.8);font-size:12px;font-weight:300;text-align:center;padding:9px 16px;letter-spacing:.04em;width:100%;overflow:hidden;transition:transform .3s ease,opacity .3s ease,max-height .3s ease}
+#topbar.hidden{max-height:0;padding:0;overflow:hidden;opacity:0}
 .tb-short{display:none}
 .tb-full{display:inline}
 #topbar a{color:var(--pl);font-weight:500}
 
 /* ── NAV ─────────────────────────────────────────────── */
-#nav{position:sticky;top:0;z-index:200;background:var(--w);border-bottom:1px solid var(--bd);box-shadow:0 1px 8px rgba(0,0,0,.06);width:100%;overflow:hidden;transition:box-shadow .2s}
+#nav{position:sticky;top:0;z-index:200;background:var(--w);border-bottom:1px solid var(--bd);box-shadow:0 1px 8px rgba(0,0,0,.06);width:100%;overflow:hidden}
 .nav-in{display:flex;align-items:center;justify-content:space-between;height:72px;padding:0 clamp(14px,4vw,48px);gap:20px}
 .logo-wrap{display:flex;flex-direction:column;line-height:1;flex-shrink:0}
 .logo-t{font-size:26px;font-weight:700;font-style:italic;color:var(--g);letter-spacing:-.02em}
@@ -109,7 +109,7 @@ ul{list-style:none}
 .cat-card:hover{transform:translateY(-5px)}
 .cat-img{width:180px;height:200px;margin:0 auto 16px;background:var(--lg);border-radius:50% 50% 50% 50%/60% 60% 40% 40%;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:box-shadow .2s}
 .cat-card:hover .cat-img{box-shadow:var(--shh)}
-.cat-img img{width:82%;height:82%;object-fit:cover;filter:drop-shadow(0 6px 14px rgba(0,0,0,.12))}
+.cat-img img{width:70%;height:80%;object-fit:contain;filter:drop-shadow(0 6px 14px rgba(0,0,0,.12))}
 .cat-nm{font-size:14px;font-weight:500;letter-spacing:.02em}
 
 /* ── PRODUCTS ────────────────────────────────────────── */
@@ -131,9 +131,7 @@ ul{list-style:none}
 .pcard:hover{transform:translateY(-4px);box-shadow:var(--shh);border-color:var(--pl)}
 .pcard.oos{opacity:.7}
 .cimg{aspect-ratio:1;background:var(--lg);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
-.cimg img{width:80%;height:80%;object-fit:contain;transition:transform .4s ease;filter:drop-shadow(0 4px 12px rgba(0,0,0,.1))}
-.cimg .ph-wrap{display:flex;align-items:center;justify-content:center;width:100%;height:100%;position:absolute;inset:0}
-.cimg .ph-wrap svg{width:64px;height:64px;opacity:.15}
+.cimg img{width:68%;height:68%;object-fit:contain;transition:transform .4s ease;filter:drop-shadow(0 4px 12px rgba(0,0,0,.1))}
 .pcard:hover .cimg img{transform:scale(1.08)}
 .wbtn{position:absolute;top:10px;right:10px;background:#fff;border:1px solid var(--bd);border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:14px;opacity:0;transition:all .2s}
 .pcard:hover .wbtn{opacity:1}
@@ -1305,12 +1303,16 @@ footer{background:var(--td);color:#fff}
     <div class="img-toolbar">
       <h2>Upload Product Images</h2>
       <input class="adm-srch" id="img-srch" type="search" placeholder="Search products…" oninput="renderImgList()">
+      <button class="abtn abtn-g" onclick="downloadVercelHTML()" title="Download a new index.html with all images baked in — upload this to Vercel">🚀 Download for Vercel</button>
       <label class="abtn abtn-p" style="cursor:pointer">
         📂 Import All (JSON)
         <input type="file" accept=".json" style="display:none" onchange="importJSON(this)">
       </label>
-      <button class="abtn abtn-g" onclick="exportJSON()">💾 Export All (JSON)</button>
+      <button class="abtn abtn-ol" onclick="exportJSON()">💾 Export Backup (JSON)</button>
       <button class="abtn abtn-red" onclick="clearAllImages()">🗑 Clear All</button>
+    </div>
+    <div id="vercel-tip" style="display:none;padding:10px 20px;background:#e8f5f0;border-bottom:1px solid #9fd9c3;font-size:12px;color:#1a5c3a;line-height:1.6">
+      ✅ <strong>index.html downloaded!</strong> Images are now baked into the file. Replace the file in your GitHub repo (or drag it into Vercel) and redeploy — images will be visible to everyone!
     </div>
     <div class="img-progress">
       <div class="prog-lbl" id="prog-lbl">0 of 0 products have images</div>
@@ -2004,7 +2006,7 @@ function renderGrid(){
       <div class="cimg">
         ${img
           ? `<img src="${img}" alt="${p.name}" loading="lazy" onerror="this.style.display='none'">`
-          : `<div class="ph-wrap"><svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="20" y="8" width="24" height="4" rx="2" fill="#224C44"/><rect x="8" y="14" width="48" height="42" rx="4" fill="#224C44"/><rect x="22" y="20" width="20" height="3" rx="1.5" fill="white"/><circle cx="22" cy="36" r="5" fill="white" opacity=".4"/><path d="M8 46 L22 30 L34 42 L42 34 L56 46 Z" fill="white" opacity=".3"/></svg></div>`
+          : `<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity:.18"><rect x="20" y="8" width="24" height="4" rx="2" fill="#224C44"/><rect x="8" y="14" width="48" height="42" rx="4" fill="#224C44"/><rect x="22" y="20" width="20" height="3" rx="1.5" fill="white"/></svg>`
         }
         ${oos?'<span class="oos-badge">Out of Stock</span>':''}
         ${p.featured?'<span class="bdg feat" style="position:absolute;bottom:10px;left:10px">Featured</span>':''}
@@ -2332,8 +2334,7 @@ function renderImgList(){
 
 function handleUpload(sku,input){
   const file=input.files[0]; if(!file) return;
-  const validTypes=['image/jpeg','image/jpg','image/png','image/webp','image/gif','image/bmp','image/tiff','image/svg+xml','image/avif','image/heic','image/heif'];
-  if(!file.type.startsWith('image/') && !validTypes.some(t=>file.name.toLowerCase().match(/\.(jpg|jpeg|png|webp|gif|bmp|tiff?|svg|avif|heic|heif)$/))){ toast('Please select an image file (JPG, PNG, WebP, GIF, BMP, SVG, AVIF…).'); return; }
+  if(!file.type.startsWith('image/')){ toast('Please select an image file (JPG, PNG, WebP, GIF, etc.)'); return; }
   if(file.size>5*1024*1024){ if(!confirm(`This image is ${(file.size/1024/1024).toFixed(1)}MB. Large images use more storage. Continue?`)) return; }
   const reader=new FileReader();
   reader.onload=(e)=>{
@@ -2344,17 +2345,10 @@ function handleUpload(sku,input){
       if(w>MAX||h>MAX){ if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;} }
       canvas.width=w; canvas.height=h;
       canvas.getContext('2d').drawImage(img,0,0,w,h);
-      // Preserve PNG transparency, use WebP when supported, else JPEG
-      let mimeOut='image/jpeg', qualityOut=0.85;
-      if(file.type==='image/png'||file.type==='image/gif'||file.type==='image/svg+xml'){
-        // Try WebP first (smaller, lossless-ish), fallback to PNG
-        const testWebP=canvas.toDataURL('image/webp');
-        mimeOut = testWebP.startsWith('data:image/webp') ? 'image/webp' : 'image/png';
-        qualityOut = 0.9;
-      } else if(file.type==='image/webp'){
-        mimeOut='image/webp'; qualityOut=0.88;
-      }
-      const compressed=canvas.toDataURL(mimeOut, qualityOut);
+      // Try WebP first (best compression), fallback to JPEG
+      let out = canvas.toDataURL('image/webp', 0.85);
+      if(!out.startsWith('data:image/webp')) out = canvas.toDataURL('image/jpeg', 0.85);
+      const compressed = out;
       imgStore[sku]=compressed; saveImg();
       const thumb=document.getElementById('ithumb-'+sku);
       if(thumb){thumb.src=compressed;thumb.style.display='block';}
@@ -2372,6 +2366,57 @@ function handleUpload(sku,input){
 }
 
 function clearImg(sku){ delete imgStore[sku]; saveImg(); renderImgList(); renderAdmStats(); toast('Image removed'); }
+
+/* ── DOWNLOAD FOR VERCEL ─────────────────────────────── */
+function downloadVercelHTML(){
+  const count = Object.keys(imgStore).length;
+  if(count === 0){
+    toast('No images uploaded yet. Upload images first, then click Download for Vercel.');
+    return;
+  }
+  toast('Preparing your file… please wait');
+  setTimeout(()=>{
+    try{
+      const imgJSON = JSON.stringify(imgStore);
+      const INJECT = '/* __BAKED_IMAGES_START__ */\nconst _BAKED_IMAGES=' + imgJSON + ';\n/* __BAKED_IMAGES_END__ */';
+
+      // Serialize current HTML, avoiding the </scr-ipt> parsing trap by splitting the tag
+      const html = document.documentElement.outerHTML;
+
+      let patched;
+      const startMarker = '/* __BAKED_IMAGES_START__ */';
+      const endMarker   = '/* __BAKED_IMAGES_END__ */';
+
+      if(html.includes(startMarker)){
+        // Update existing baked block
+        const s = html.indexOf(startMarker);
+        const e = html.indexOf(endMarker) + endMarker.length;
+        patched = html.slice(0, s) + INJECT + html.slice(e);
+      } else {
+        // First deployment: insert baked images before the loadStorage function
+        patched = html.replace('function loadStorage(){', INJECT + '\nfunction loadStorage(){');
+      }
+
+      // Ensure getImg reads baked images as fallback
+      const oldGet = "function getImg(sku){ return imgStore[sku] || ''; }";
+      const newGet = "function getImg(sku){ return imgStore[sku] || (typeof _BAKED_IMAGES!=='undefined'&&_BAKED_IMAGES[sku]) || ''; }";
+      if(patched.includes(oldGet)) patched = patched.replace(oldGet, newGet);
+
+      const blob = new Blob([patched], {type:'text/html'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'index.html';
+      a.click();
+      URL.revokeObjectURL(a.href);
+
+      document.getElementById('vercel-tip').style.display = 'block';
+      toast('Downloaded! Replace on Vercel to show images to everyone.');
+    } catch(err){
+      toast('Error: ' + err.message);
+      console.error(err);
+    }
+  }, 100);
+}
 function clearAllImages(){
   if(!confirm('Remove ALL product images? This cannot be undone.')) return;
   imgStore={}; saveImg(); renderImgList(); renderAdmStats(); toast('All images cleared');
@@ -2717,20 +2762,10 @@ document.addEventListener('DOMContentLoaded', function(){
   init();
   initHeroSlider();
 
-  // Hide topbar on scroll, keep nav sticky at top
+  // Hide topbar on scroll so nav sticks cleanly at the top
   const topbar = document.getElementById('topbar');
-  const nav = document.getElementById('nav');
-  let lastY = 0;
   window.addEventListener('scroll', ()=>{
-    const y = window.scrollY;
-    if(y > 60){
-      topbar.classList.add('hidden');
-      nav.style.top = '0';
-      nav.style.boxShadow = y > 100 ? '0 2px 16px rgba(0,0,0,.12)' : '0 1px 8px rgba(0,0,0,.06)';
-    } else {
-      topbar.classList.remove('hidden');
-    }
-    lastY = y;
+    topbar.classList.toggle('hidden', window.scrollY > 50);
   }, {passive:true});
 });
 
