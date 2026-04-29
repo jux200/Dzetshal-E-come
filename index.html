@@ -1872,7 +1872,7 @@ function getImg(sku){
   if(imgStore[sku]) return imgStore[sku];
   // Priority 2: static file in /img folder named by SKU (deployed on Vercel)
   // Supports .jpg, .jpeg, .png, .webp — the <img> tag's onerror handles missing files gracefully
-  return 'img/' + sku + 'jpg','.jpeg','.png','.webp';
+  return 'img/' + sku + '.jpg';
 }
 
 function getStkInfo(sku){
