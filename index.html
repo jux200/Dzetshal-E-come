@@ -920,7 +920,7 @@ footer{background:var(--td);color:#fff}
       </select>
     </div>
   </div>
-  <div class="pgrid" id="pgrid"></div>
+  <div class="pgrid" id="pgrid"><div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--tl);font-size:14px">Loading products…</div></div>
   <nav class="pag" id="pag"></nav>
   <div style="text-align:center;padding:16px 0 32px">
     <button class="btn btn-ol" onclick="setState({brand:'ALL',gender:'all',type:'ALL',search:'',page:1})">View Full Collection →</button>
@@ -1298,6 +1298,7 @@ footer{background:var(--td);color:#fff}
   <div class="adm-tab-pane on" id="tab-images">
     <div class="img-toolbar">
       <h2>Upload Product Images</h2>
+      <span id="storage-status" style="font-size:11px;background:#e8f5f0;color:#1a5c3a;border:1px solid #9fd9c3;border-radius:12px;padding:3px 10px;font-weight:600;white-space:nowrap">✓ Unlimited storage</span>
       <input class="adm-srch" id="img-srch" type="search" placeholder="Search products…" oninput="renderImgList()">
       <button class="abtn abtn-g" onclick="downloadVercelHTML()" title="Download a new index.html with all images baked in — upload this to Vercel">🚀 Download for Vercel</button>
       <label class="abtn abtn-p" style="cursor:pointer">
@@ -1856,14 +1857,56 @@ const PER = 24;
 /* ================================================================
    INIT
 ================================================================ */
-function loadStorage(){
-  try{ imgStore = JSON.parse(localStorage.getItem(IMG_KEY)||'{}'); }catch(e){ imgStore={}; }
+async function loadStorage(){
+  // Cart, wishlist, stock stay in localStorage (small data)
   try{ stkStore = JSON.parse(localStorage.getItem(STK_KEY)||'{}'); }catch(e){ stkStore={}; }
   try{ cart     = JSON.parse(localStorage.getItem(CART_KEY)||'[]'); }catch(e){ cart=[]; }
   try{ wishlist = JSON.parse(localStorage.getItem(WISH_KEY)||'[]'); }catch(e){ wishlist=[]; }
+  // Images load from persistent storage (no 5MB limit)
+  await loadImagesFromStorage();
 }
 
-function saveImg(){ try{ localStorage.setItem(IMG_KEY,JSON.stringify(imgStore)); }catch(e){ alert('Storage full! Try exporting and clearing some images.'); } }
+async function loadImagesFromStorage(){
+  imgStore = {};
+  try {
+    // List all image keys from persistent storage
+    const result = await window.storage.list('img:');
+    if(result && result.keys){
+      const entries = await Promise.all(
+        result.keys.map(async k => {
+          try {
+            const r = await window.storage.get(k);
+            return r ? [k.replace('img:',''), r.value] : null;
+          } catch(e){ return null; }
+        })
+      );
+      entries.forEach(e => { if(e) imgStore[e[0]] = e[1]; });
+    }
+  } catch(e){
+    // Fallback: try old localStorage images
+    try{ const old = JSON.parse(localStorage.getItem(IMG_KEY)||'{}'); Object.assign(imgStore, old); }catch(e2){}
+  }
+  _imgLoaded = true;
+}
+let _imgLoaded = false;
+
+async function saveImgKey(sku, dataUrl){
+  try {
+    await window.storage.set('img:'+sku, dataUrl);
+    imgStore[sku] = dataUrl;
+  } catch(e){
+    console.error('Failed to save image for', sku, e);
+    toast('⚠️ Failed to save image. Please try again.');
+  }
+}
+async function deleteImgKey(sku){
+  try { await window.storage.delete('img:'+sku); } catch(e){}
+  delete imgStore[sku];
+}
+// Legacy sync saveImg — now a no-op (saves happen per-key)
+function saveImg(){ /* images saved per-key via saveImgKey() */ }
+
+function getStorageImgCount(){ return Object.keys(imgStore).length; }
 function saveStk(){ try{ localStorage.setItem(STK_KEY,JSON.stringify(stkStore)); }catch(e){} }
 function saveCart(){ try{ localStorage.setItem(CART_KEY,JSON.stringify(cart)); }catch(e){} }
 function saveWish(){ try{ localStorage.setItem(WISH_KEY,JSON.stringify(wishlist)); }catch(e){} }
@@ -1884,8 +1927,8 @@ function isInStock(sku){
 
 const fmt = n => 'RWF ' + Math.round(n).toLocaleString();
 
-function init(){
-  loadStorage();
+async function init(){
+  await loadStorage();
   buildBrandPills();
   buildTypePills();
   renderGrid();
@@ -2330,30 +2373,30 @@ function renderImgList(){
   }).join('');
 }
 
-function handleUpload(sku,input){
+async function handleUpload(sku,input){
   const file=input.files[0]; if(!file) return;
   if(!file.type.startsWith('image/')){ toast('Please select an image file (JPG, PNG, WebP, GIF, etc.)'); return; }
   if(file.size>5*1024*1024){ if(!confirm(`This image is ${(file.size/1024/1024).toFixed(1)}MB. Large images use more storage. Continue?`)) return; }
   const reader=new FileReader();
-  reader.onload=(e)=>{
+  reader.onload=async (e)=>{
     const img=new Image();
-    img.onload=()=>{
+    img.onload=async ()=>{
       const canvas=document.createElement('canvas');
-      const MAX=800; let w=img.width,h=img.height;
+      const MAX=700; let w=img.width,h=img.height;
       if(w>MAX||h>MAX){ if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;} }
       canvas.width=w; canvas.height=h;
       canvas.getContext('2d').drawImage(img,0,0,w,h);
       // Try WebP first (best compression), fallback to JPEG
-      let out = canvas.toDataURL('image/webp', 0.85);
-      if(!out.startsWith('data:image/webp')) out = canvas.toDataURL('image/jpeg', 0.85);
+      let out = canvas.toDataURL('image/webp', 0.78);
+      if(!out.startsWith('data:image/webp')) out = canvas.toDataURL('image/jpeg', 0.78);
       const compressed = out;
-      imgStore[sku]=compressed; saveImg();
+      await saveImgKey(sku, compressed);
       const thumb=document.getElementById('ithumb-'+sku);
       if(thumb){thumb.src=compressed;thumb.style.display='block';}
       const row=document.getElementById('imgrow-'+sku);
       if(row) row.classList.add('has-img');
       const stat=document.getElementById('istat-'+sku);
-      if(stat){stat.textContent='✓ Image saved ('+Math.round(compressed.length/1024)+'KB)';stat.className='img-status ok';}
+      if(stat){stat.textContent='✓ Saved ('+Math.round(compressed.length/1024)+'KB)';stat.className='img-status ok';}
       renderImgList(); renderAdmStats();
       toast('✓ Image saved for '+(RAW.find(p=>p.sku===sku)?.brand||sku));
     };
@@ -2363,7 +2406,7 @@ function handleUpload(sku,input){
   input.value='';
 }
 
-function clearImg(sku){ delete imgStore[sku]; saveImg(); renderImgList(); renderAdmStats(); toast('Image removed'); }
+async function clearImg(sku){ await deleteImgKey(sku); renderImgList(); renderAdmStats(); renderGrid(); toast('Image removed'); }
 
 /* ── DOWNLOAD FOR VERCEL ─────────────────────────────── */
 function downloadVercelHTML(){
@@ -2412,9 +2455,13 @@ function downloadVercelHTML(){
     }
   }, 100);
 }
-function clearAllImages(){
+async function clearAllImages(){
   if(!confirm('Remove ALL product images? This cannot be undone.')) return;
-  imgStore={}; saveImg(); renderImgList(); renderAdmStats(); toast('All images cleared');
+  const skus = Object.keys(imgStore);
+  await Promise.all(skus.map(sku => deleteImgKey(sku)));
+  imgStore = {};
+  renderImgList(); renderAdmStats(); renderGrid();
+  toast('All images cleared ('+skus.length+' removed)');
 }
 function exportJSON(){
   const blob=new Blob([JSON.stringify(imgStore,null,2)],{type:'application/json'});
@@ -2753,8 +2800,8 @@ function _startHeroAuto(){
 }
 
 // ── Bootstrap ──
-document.addEventListener('DOMContentLoaded', function(){
-  init();
+document.addEventListener('DOMContentLoaded', async function(){
+  await init();
   initHeroSlider();
 
   // Hide topbar on scroll so nav sticks cleanly at the top
