@@ -2735,9 +2735,18 @@ function openModal(sku, groupKey){
     const stkInfo = getStkInfo(mp.sku);
 
     // Update image panel
-    document.getElementById('mimg').innerHTML = img
+    const hasImg = hasUploadedImg(mp.sku);
+    const base = "img/"+mp.sku;
+    document.getElementById('mimg').innerHTML = hasImg
       ? `<img src="${img}" alt="${mp.name}" style="width:100%;height:100%;object-fit:cover;object-position:center top;position:absolute;inset:0;" onerror="this.style.display='none'">`
-      : `<div style="display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--tl)"><svg width="80" height="80" viewBox="0 0 64 64" fill="none"><rect x="20" y="8" width="24" height="4" rx="2" fill="#224C44" opacity=".3"/><rect x="8" y="14" width="48" height="42" rx="4" fill="#224C44" opacity=".3"/></svg><span style="font-size:11px">No image yet</span></div>`;
+      : `<img src="${base}.avif" alt="${mp.name}" data-t="avif"
+           style="width:100%;height:100%;object-fit:cover;object-position:center top;position:absolute;inset:0;"
+           onerror="(function(el){
+             if(el.dataset.t==='avif'){el.dataset.t='png';el.src='${base}.png';}
+             else if(el.dataset.t==='png'){el.dataset.t='jpg';el.src='${base}.jpg';}
+             else{el.style.display='none';var n=el.nextElementSibling;if(n)n.style.display='flex';}
+           })(this)">
+         <div style="display:none;flex-direction:column;align-items:center;gap:12px;color:var(--tl);position:absolute;inset:0;justify-content:center"><svg width="80" height="80" viewBox="0 0 64 64" fill="none"><rect x="20" y="8" width="24" height="4" rx="2" fill="#224C44" opacity=".3"/><rect x="8" y="14" width="48" height="42" rx="4" fill="#224C44" opacity=".3"/></svg><span style="font-size:11px">No image yet</span></div>`;
 
     // Clean display name
     let displayName = mp.name;
