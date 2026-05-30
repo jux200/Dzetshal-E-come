@@ -2791,6 +2791,131 @@ function openModal(sku, groupKey){
       "Joop":"Joop! launched its first fragrance in 1989. The house is known for bold, distinctive scents — Joop! Homme (1989) remains one of the most recognizable masculine fragrances in Germany.",
       "Davidoff":"Davidoff Cool Water (1988) became a landmark of aquatic perfumery, inspired by the ocean and nature. The Swiss brand stands for freshness, vitality and clean masculine elegance."
     };
+
+    // Per-fragrance data: year launched + story + main accords
+    const fragranceData = {
+      // Chanel
+      "Chanel No 5":       { year:1921, story:"The world's first abstract perfume, created by Ernest Beaux for Coco Chanel. Its aldehydic floral signature revolutionised perfumery and became a symbol of timeless femininity.", accords:["Aldehydic","Floral","Powdery","Musky","Woody"] },
+      "Chanel No.5":       { year:1921, story:"The world's first abstract perfume, created by Ernest Beaux for Coco Chanel. Its aldehydic floral signature revolutionised perfumery and became a symbol of timeless femininity.", accords:["Aldehydic","Floral","Powdery","Musky","Woody"] },
+      "Chanel Bleu De Chanel": { year:2010, story:"A meditation on freedom — Bleu de Chanel is a woody aromatic for the man who refuses to be defined. Cool, magnetic and effortlessly sophisticated.", accords:["Woody","Aromatic","Citrus","Fresh Spicy","Musky"] },
+      "Bleu De Chanel":    { year:2010, story:"A meditation on freedom — Bleu de Chanel is a woody aromatic for the man who refuses to be defined. Cool, magnetic and effortlessly sophisticated.", accords:["Woody","Aromatic","Citrus","Fresh Spicy","Musky"] },
+      "Chanel Chance":     { year:2002, story:"Chance is an invitation — a daring departure for the house of Chanel. Bright, round and luminous, it captures the spirit of spontaneous elegance.", accords:["Floral","Citrus","Woody","Musky","Fresh Spicy"] },
+      "Chanel Coco":       { year:1984, story:"A bold oriental floral born from Coco Chanel's love of excess. Opulent and warm, Coco remains one of the great classic feminine fragrances.", accords:["Oriental","Floral","Spicy","Powdery","Woody"] },
+      "Chanel Coco Mademoiselle": { year:2001, story:"Fresh, bold and sensual — Coco Mademoiselle is a tribute to the modern, free-spirited woman. A floral chypre that balances freshness with depth.", accords:["Floral","Chypre","Citrus","Musky","Patchouli"] },
+      "Chanel Coco Noir":  { year:2012, story:"A mysterious, velvety reinvention of Coco. Dark rose, patchouli and sandalwood create an intense and hypnotic oriental for the night.", accords:["Oriental","Floral","Woody","Musky","Patchouli"] },
+      "Chanel Allure":     { year:1996, story:"Allure explores the very nature of attraction. A complex, multi-faceted fragrance that reveals itself differently on every skin it touches.", accords:["Floral","Woody","Citrus","Vanilla","Musky"] },
+      "Chanel Gabrielle":  { year:2017, story:"Named after Coco Chanel herself, Gabrielle captures her essence — white flowers, radiant and free, soaring above a warm musked base.", accords:["Floral","White Floral","Citrus","Musky","Fruity"] },
+      "Chanel Chance Eau Tendre": { year:2010, story:"The softest, most luminous of the Chance family — a grapefruit-rose freshness for the free-spirited dreamer who lives in the moment.", accords:["Citrus","Floral","Fruity","Musky","Fresh"] },
+      // Christian Dior
+      "Sauvage":           { year:2015, story:"Sauvage evokes open landscapes and raw, blue skies — a radically fresh masculine fragrance built on bergamot and ambroxan that redefined modern men's perfumery.", accords:["Aromatic","Fresh Spicy","Woody","Citrus","Musky"] },
+      "J'adore":           { year:1999, story:"J'adore is the ultimate feminine fragrance — a golden, luminous floral bouquet of ylang-ylang, Damascus rose and jasmine. Pure Dior femininity.", accords:["Floral","White Floral","Fruity","Musky","Woody"] },
+      "Miss Dior":         { year:1947, story:"The very first Dior fragrance, created as a tribute to Christian Dior's sister Catherine. A timeless chypre that has been reinterpreted for every generation.", accords:["Floral","Chypre","Rose","Musky","Citrus"] },
+      "Dior Homme":        { year:2005, story:"Dior Homme caused a sensation — a powdery, iris-forward masculine that challenged all conventions of men's perfumery, cementing Hedi Slimane's vision of androgynous elegance.", accords:["Powdery","Floral","Woody","Iris","Leather"] },
+      "Dior Joy":          { year:2018, story:"Joy by Dior is a solar, sparkling floral that celebrates happiness — a luminous, modern feminine signature built on sandalwood, rose and jasmine.", accords:["Floral","Woody","Musky","Fresh","Citrus"] },
+      // YSL
+      "Black Opium":       { year:2014, story:"Black Opium is the night-time rock muse of feminine fragrance — coffee, white flowers and vanilla create an addictive, glamorous oriental for bold spirits.", accords:["Coffee","Vanilla","White Floral","Gourmand","Musky"] },
+      "Libre":             { year:2019, story:"Libre is YSL's manifesto of freedom — the heat of Moroccan orange blossom fused with lavender in a bold, androgynous oriental that dares to be different.", accords:["Floral","Oriental","Lavender","Vanilla","Musky"] },
+      "Mon Paris":         { year:2016, story:"Mon Paris is a passionate love story set against the backdrop of the city of light — a bright, dizzying white floral chypre full of patchouli and white musk.", accords:["Floral","Fruity","Chypre","Patchouli","Musky"] },
+      "Opium":             { year:1977, story:"One of the most controversial launches in perfume history, Opium sparked global debate. A powerful, bold oriental that remains an icon of excess and drama.", accords:["Oriental","Spicy","Floral","Amber","Resinous"] },
+      "L'Homme":           { year:2006, story:"YSL L'Homme redefined what a modern masculine fragrance could be — a refined, clean and elegant woody spicy that made sophistication effortless.", accords:["Woody","Spicy","Citrus","Aromatic","Musky"] },
+      // Giorgio Armani
+      "Acqua di Gio":      { year:1996, story:"Inspired by the island of Pantelleria and the Mediterranean sea, Acqua di Gio is one of the world's best-selling men's fragrances — a benchmark of marine freshness.", accords:["Aquatic","Citrus","Aromatic","Woody","Musky"] },
+      "Acqua di Gioia":    { year:2010, story:"A feminine counterpart to Acqua di Gio — a sparkling aquatic floral that captures the joy of sea breeze, jasmine and mint in perfect harmony.", accords:["Aquatic","Floral","Fresh","Citrus","Musky"] },
+      "Si":                { year:2013, story:"Armani Si is a modern take on the classic chypre — a hymn to the woman who says yes to life. Built on blackcurrant nectar, rose and patchouli.", accords:["Chypre","Floral","Fruity","Woody","Musky"] },
+      "Stronger With You": { year:2017, story:"A warm, enveloping oriental inspired by love and togetherness — chestnut, sage and vanilla blend into a sensual, modern masculine declaration.", accords:["Warm Spicy","Gourmand","Woody","Vanilla","Amber"] },
+      "My Way":            { year:2020, story:"My Way celebrates the connections we make when we travel the world with open arms — tuberose, bergamot and sandalwood reflect Armani's vision of responsible luxury.", accords:["Floral","Woody","Musky","Citrus","Vanilla"] },
+      // Gucci
+      "Gucci Bloom":       { year:2017, story:"Gucci Bloom was born from Alessandro Michele's vision of a garden in full, intense bloom. A rich white floral built on tuberose, rangoon creeper and jasmine.", accords:["White Floral","Floral","Musky","Powdery","Earthy"] },
+      "Gucci Flora":       { year:2009, story:"Originally created as a scarf print for Princess Diana, Flora became a full fragrance collection — fresh, feminine and eternally elegant.", accords:["Floral","Fruity","Citrus","Musky","Peony"] },
+      "Guilty":            { year:2010, story:"Gucci Guilty was designed for those who live without regrets — a floral oriental that blends pink pepper, lilac and amber into a bold, unapologetic statement.", accords:["Floral","Oriental","Citrus","Musky","Woody"] },
+      // Prada
+      "Luna Rossa":        { year:2012, story:"Luna Rossa is a wind sport at sea — a fresh, aromatic masculine inspired by the Italian racing yachts and the spirit of ambitious sport.", accords:["Aromatic","Lavender","Citrus","Musky","Fresh Spicy"] },
+      "Infusion d'Iris":   { year:2007, story:"A radical, cerebral take on floral perfumery — Infusion d'Iris strips fragrance back to cool iris purity, creating a uniquely transparent and intellectual scent.", accords:["Iris","Floral","Woody","Powdery","Musky"] },
+      "Prada Paradoxe":    { year:2022, story:"A fragrance that embraces contradiction — jasmine meets amber meets white musk in a bold circular formula that evolves with every wear.", accords:["Floral","Musky","Amber","Citrus","Woody"] },
+      // Versace
+      "Eros":              { year:2012, story:"Named for the Greek god of love, Eros is an intense, virile masculine fragrance — mint, green apple and tonka bean create a powerfully seductive opening.", accords:["Fresh Spicy","Aromatic","Woody","Citrus","Vanilla"] },
+      "Bright Crystal":    { year:2006, story:"A sheer, feminine fragrance inspired by the purity of a crystal — delicate yuzu, pomegranate and peony shimmer over a soft musk.", accords:["Floral","Fruity","Aquatic","Musky","Woody"] },
+      "Dylan Blue":        { year:2016, story:"Inspired by the spirit of young Versace, Dylan Blue is a modern take on masculinity — aquatic, woody and fougère with a magnetic ambrofix dry-down.", accords:["Aquatic","Woody","Fresh Spicy","Citrus","Musky"] },
+      "Crystal Noir":      { year:2004, story:"The dark sister of Bright Crystal — a warm, sensual oriental with ginger, coconut and musky sandalwood that seduces in the most velvety way.", accords:["Oriental","Floral","Woody","Musky","Spicy"] },
+      // D&G
+      "Light Blue":        { year:2001, story:"Inspired by a Sicilian summer, Light Blue is a Mediterranean dream in a bottle — zesty lemon, apple and bamboo that captures the joy of living beautifully.", accords:["Citrus","Aquatic","Floral","Musky","Woody"] },
+      "The One":           { year:2006, story:"The One by Dolce & Gabbana is a sophisticated oriental — bergamot, ginger and cardamom give way to jasmine and rich amber, the scent of timeless glamour.", accords:["Oriental","Floral","Citrus","Amber","Spicy"] },
+      // Carolina Herrera
+      "Good Girl":         { year:2016, story:"Housed in a bold stiletto-shaped bottle, Good Girl is a duality between light and shadow — jasmine and tonka bean in a modern, audacious feminine oriental.", accords:["Gourmand","Floral","Coffee","Vanilla","Musky"] },
+      "Bad Boy":           { year:2019, story:"The masculine counterpart to Good Girl, Bad Boy challenges conventions — bergamot and pepper clash with cocoa and vetiver in an electrifying contrast of good and evil.", accords:["Woody","Aromatic","Fresh Spicy","Citrus","Amber"] },
+      "212":               { year:1997, story:"212 is the area code of Manhattan — an urban fragrance that bottles the energy and dynamism of New York City, modern, clean and effortlessly cool.", accords:["Floral","Woody","Musky","Citrus","Fresh"] },
+      "Very Good Girl":    { year:2021, story:"A juicy, luminous twist on the iconic Good Girl — rose and litchi sparkle over a background of woody musks in an irresistibly fresh feminine.", accords:["Floral","Fruity","Rose","Musky","Woody"] },
+      // Mont Blanc
+      "Legend":            { year:2006, story:"Montblanc Legend is a fougère benchmark — a crisp, clean aromatic that embodies the spirit of the modern gentleman with bergamot, lavender and oakmoss.", accords:["Aromatic","Fougère","Woody","Citrus","Musky"] },
+      "Explorer":          { year:2019, story:"Montblanc Explorer follows the trail of the adventurous spirit — ambroxan and vetiver build a woody, resinous base that grounds bergamot and clary sage.", accords:["Woody","Aromatic","Citrus","Musky","Resinous"] },
+      // Paco Rabanne
+      "1 Million":         { year:2008, story:"One of the world's best-selling men's fragrances, housed in a gold bar bottle — 1 Million opens with grapefruit and blood mandarin, then gives way to rose leather.", accords:["Woody","Leather","Citrus","Spicy","Amber"] },
+      "Olympéa":           { year:2015, story:"Olympéa is a goddess come to earth — salt, water jasmine and sandalwood create a fresh, sensual modern feminine with an addictively warm, creamy base.", accords:["Floral","Musky","Vanilla","Salty","Woody"] },
+      "Invictus":          { year:2013, story:"Inspired by the victorious athlete, Invictus is a powerful aquatic woody — grapefruit, marine accord and ambergris create an energetic, triumphant masculine.", accords:["Aquatic","Citrus","Woody","Aromatic","Musky"] },
+      "Fame":              { year:2022, story:"Paco Rabanne Fame is a futuristic floral musk in a striking reflective bottle — solar jasmine over a modern woody musk base, for the woman who dares to shine.", accords:["Floral","Woody","Musky","Solar","Citrus"] },
+      // Burberry
+      "Brit":              { year:2003, story:"Brit is Burberry bottled — warm, spicy and thoroughly British. Pear, almonds and a woody amber base reflect the iconic heritage check in scent form.", accords:["Warm Spicy","Woody","Citrus","Floral","Amber"] },
+      "Her":               { year:2018, story:"Burberry Her is a modern ode to London — a fruity fresh floral that captures the energy and freedom of the city's women, built on a signature musky base.", accords:["Fruity","Floral","Musky","Citrus","Fresh"] },
+      "Hero":              { year:2021, story:"Burberry Hero reimagines modern masculinity — a cedar and juniper aromatic that celebrates strength in all its forms, with a distinctive green, resinous warmth.", accords:["Woody","Aromatic","Citrus","Musky","Resinous"] },
+      // Mugler
+      "Angel":             { year:1992, story:"Angel changed perfumery forever — the world's first gourmand fragrance. Patchouli, caramel and red berries created an entirely new olfactory category.", accords:["Gourmand","Patchouli","Sweet","Woody","Musky"] },
+      "Alien":             { year:2005, story:"Alien is a force of nature — a solar floral built on white amber that radiates warmth and mystery. One of perfumery's most distinctive and lasting signatures.", accords:["Floral","Woody","Amber","Solar","Musky"] },
+      // JPG
+      "Le Male":           { year:1995, story:"Jean Paul Gaultier's Le Male became one of the most iconic masculine fragrances in history — mint, lavender and vanilla in a sailor-torso bottle that redefined masculinity.", accords:["Fougère","Aromatic","Vanilla","Oriental","Musky"] },
+      "Scandal":           { year:2017, story:"JPG Scandal is unapologetically provocative — honey, gardenia and blood orange seduce from the first spray, housed in a stocking-shaped bottle that winks at fashion.", accords:["Floral","Honey","Citrus","Musky","Oriental"] },
+      // Davidoff
+      "Cool Water":        { year:1988, story:"Davidoff Cool Water launched aquatic perfumery as a category — inspired by the sea and the philosophy of freshness, it is one of the most influential fragrances ever made.", accords:["Aquatic","Aromatic","Citrus","Woody","Musky"] },
+      // Marc Jacobs
+      "Daisy":             { year:2007, story:"Marc Jacobs Daisy is the flower child of fine fragrance — a bright, playful blend of wild strawberry, violet leaves and jasmine in an iconic daisy-topped bottle.", accords:["Floral","Fresh","Musky","Fruity","Woody"] },
+      "Dot":               { year:2012, story:"Dot is playful and colourful like the polka-dotted bottle it inhabits — a fruity floral burst of dragon fruit, honeysuckle and musky woods.", accords:["Fruity","Floral","Musky","Fresh","Woody"] },
+      // Lancome
+      "La Vie Est Belle":  { year:2012, story:"La Vie Est Belle — Life is Beautiful — is Lancôme's best-selling fragrance, a gourmand iris built on patchouli and praline. A hymn to joy and feminine freedom.", accords:["Gourmand","Floral","Oriental","Iris","Patchouli"] },
+      "Trésor":            { year:1990, story:"A luminous, warm oriental rose created by perfumer Sophia Grojsman, Trésor is one of the most celebrated feminine fragrances of the 1990s — soft and eternally romantic.", accords:["Oriental","Floral","Rose","Powdery","Vanilla"] },
+      // Chloe
+      "Chloé Signature":   { year:2008, story:"Chloé Signature is an elegant, feminine rose in its purest form — magnolia and peony frame the radiant rose heart, grounded by cedarwood in a timeless round bottle.", accords:["Rose","Floral","Musky","Powdery","Woody"] },
+      "Chloé Nomade":      { year:2018, story:"Nomade captures the spirit of the free-spirited traveller — white mirabelle plum, freesia and oak moss create a fresh, sensual and quintessentially Chloé signature.", accords:["Floral","Fruity","Chypre","Musky","Woody"] },
+    };
+
+    // Match fragrance name to data (flexible partial match)
+    function getFragranceInfo(name, brand){
+      const fullName = name;
+      // Try exact key first
+      if(fragranceData[fullName]) return fragranceData[fullName];
+      // Try with brand prefix stripped
+      const stripped = fullName.toLowerCase().replace(brand.toLowerCase(),'').replace(/\s*(edp|edt|parfum|edc)\s*/gi,'').replace(/\d+\s*ml/gi,'').replace(/[()]/g,'').trim();
+      for(const key of Object.keys(fragranceData)){
+        const k = key.toLowerCase().replace(brand.toLowerCase(),'').trim();
+        if(stripped.includes(k) || k.includes(stripped.replace(/\s+/g,' '))) return fragranceData[key];
+      }
+      // Fallback to type-based info
+      const typeDefaults = {
+        'EDP':    { accords:["Floral","Woody","Musky","Warm Spicy","Amber"] },
+        'EDT':    { accords:["Citrus","Aromatic","Fresh","Woody","Musky"] },
+        'Parfum': { accords:["Floral","Oriental","Woody","Amber","Musky"] },
+        'EDC':    { accords:["Citrus","Fresh","Aquatic","Light Musky","Aromatic"] }
+      };
+      return typeDefaults[mp.type] || { accords:["Floral","Woody","Musky","Warm","Amber"] };
+    }
+    const fragInfo = getFragranceInfo(mp.name, mp.brand);
+    const accords = fragInfo.accords || [];
+    const fragYear = fragInfo.year || null;
+    const fragStory = fragInfo.story || null;
+
+    const accordColors = ["#e8f0ee","#f0e8ee","#eef0e8","#e8eef0","#f0ede8","#ede8f0"];
+    const accordsHTML = accords.length ? `
+      <div style="margin-bottom:18px">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tm);margin-bottom:8px">🌿 Main Accords</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${accords.map((a,i)=>`<span style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;background:${accordColors[i%accordColors.length]};color:var(--g);border:1px solid var(--mg)">${a}</span>`).join('')}
+        </div>
+      </div>` : '';
+
+    const storyHTML = (fragStory || fragYear) ? `
+      <div style="margin-bottom:18px;background:var(--lg);border-left:3px solid var(--p);border-radius:0 6px 6px 0;padding:12px 14px">
+        ${fragYear ? `<div style="font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--pd);margin-bottom:6px">✦ Launched ${fragYear}</div>` : ''}
+        ${fragStory ? `<p style="font-size:12px;line-height:1.7;color:var(--tm);font-weight:300;margin:0">${fragStory}</p>` : ''}
+      </div>` : '';
+
     const brand = mp.brand;
     const history = historyData[brand] || (brand+' is a distinguished fragrance house crafting scents with the finest ingredients, reflecting decades of olfactory expertise and authentic luxury.');
     const hid = 'hist-'+mp.sku;
@@ -2812,10 +2937,11 @@ function openModal(sku, groupKey){
         <div class="mdet"><span class="mdk">Type</span><span>${mp.type}</span></div>
         ${mp.size?`<div class="mdet"><span class="mdk">Size</span><span>${mp.size}</span></div>`:''}
         <div class="mdet"><span class="mdk">Gender</span><span style="text-transform:capitalize">${mp.gender}</span></div>
-        <div class="mdet"><span class="mdk">Stock</span><span style="color:${oos?'var(--red)':'#2d6358'};font-weight:600">${oos?'Out of Stock':'In Stock'+(stkInfo.qty<999?' ('+stkInfo.qty+' left)':'')}</span></div>
-        <div class="mdet"><span class="mdk">SKU</span><span style="font-size:11px;color:var(--tl)">${mp.sku}</span></div>
       </div>
-      <div class="macts">
+      ${accordsHTML}
+      ${storyHTML}
+      ${historySection}
+      <div class="macts" style="margin-top:20px;border-top:1px solid var(--mg);padding-top:18px">
         ${oos
           ? `<button class="btn btn-ol" style="width:100%;justify-content:center;cursor:not-allowed;opacity:.6" disabled>Out of Stock</button>`
           : `<button class="btn btn-g" style="width:100%;justify-content:center" onclick="addToCart('${mp.sku}');closeModal()">
@@ -2824,8 +2950,7 @@ function openModal(sku, groupKey){
             </button>`
         }
         <button class="btn btn-ol" style="width:100%;justify-content:center" onclick="toggleWish('${mp.sku}')">♡ Add to Wishlist</button>
-      </div>
-      ${historySection}`;
+      </div>`;
 
     // Sticky mobile footer
     const sf = document.getElementById('mbox-sticky-foot');
