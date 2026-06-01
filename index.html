@@ -2882,40 +2882,97 @@ function openModal(sku, groupKey){
       "Trésor":            { year:1990, story:"A luminous, warm oriental rose created by perfumer Sophia Grojsman, Trésor is one of the most celebrated feminine fragrances of the 1990s — soft and eternally romantic.", accords:["Oriental","Floral","Rose","Powdery","Vanilla"] },
       // Chloe
       "Chloé Signature":   { year:2008, story:"Chloé Signature is an elegant, feminine rose in its purest form — magnolia and peony frame the radiant rose heart, grounded by cedarwood in a timeless round bottle.", accords:["Rose","Floral","Musky","Powdery","Woody"] },
-      "Chloé Nomade":      { year:2018, story:"Nomade captures the spirit of the free-spirited traveller — white mirabelle plum, freesia and oak moss create a fresh, sensual and quintessentially Chloé signature.", accords:["Floral","Fruity","Chypre","Musky","Woody"] },
+      "Chloé Nomade":      { year:2018, story:"Nomade captures the spirit of the free-spirited traveller — white mirabelle plum, freesia and oak moss create a fresh, sensual and quintessentially Chloé signature.", accords:[["Floral",95],["Fruity",80],["Chypre",70],["Musky",60],["Woody",50]] },
+      // Calvin Klein
+      "CK One":            { year:1994, story:"CK One revolutionised perfumery in 1994 as the world's first shared unisex fragrance. A clean, fresh tea-citrus accord blended with green notes and soft musks — pure, democratic and endlessly modern.", accords:[["Citrus",95],["Green",80],["Musky",75],["Fresh",65],["Woody",50]] },
+      "Calvin Klein One":  { year:1994, story:"CK One revolutionised perfumery in 1994 as the world's first shared unisex fragrance. A clean, fresh tea-citrus accord blended with green notes and soft musks — pure, democratic and endlessly modern.", accords:[["Citrus",95],["Green",80],["Musky",75],["Fresh",65],["Woody",50]] },
+      "CK Be":             { year:1996, story:"CK Be is a declaration of individuality — a minimalist blend of lavender, sandalwood and musk that defies gender boundaries and celebrates the freedom to simply be.", accords:[["Musky",90],["Woody",75],["Aromatic",65],["Fresh",60],["Citrus",50]] },
+      "Calvin Klein Be":   { year:1996, story:"CK Be is a declaration of individuality — a minimalist blend of lavender, sandalwood and musk that defies gender boundaries and celebrates the freedom to simply be.", accords:[["Musky",90],["Woody",75],["Aromatic",65],["Fresh",60],["Citrus",50]] },
+      "Euphoria":          { year:2005, story:"Euphoria is intoxicating and sensual — pomegranate, black violet and dark amber create a hypnotic oriental feminine that captures the tension between innocence and desire.", accords:[["Fruity",90],["Floral",80],["Oriental",70],["Musky",65],["Woody",50]] },
+      "Eternity":          { year:1988, story:"Calvin Klein Eternity is a luminous floral bouquet — green leaves, freesia and sage capture the timeless purity of love and commitment.", accords:[["Floral",92],["Green",78],["Musky",68],["Citrus",58],["Woody",45]] },
+      "Obsession":         { year:1985, story:"Obsession is boldly provocative — a warm, spiced oriental of vanilla, amber and musk. One of the defining fragrances of the 1980s excess.", accords:[["Oriental",95],["Spicy",80],["Vanilla",75],["Amber",65],["Musky",55]] },
+      "Defy":              { year:2021, story:"Defy is a manifesto for the man who forges his own path — bergamot, cedar and vetiver build a clean, confident woody aromatic that feels both grounded and free.", accords:[["Woody",90],["Aromatic",78],["Citrus",70],["Musky",60],["Fresh",50]] },
+      // Davidoff
+      "Cool Elixir":       { year:2023, story:"Cool Elixir takes the legendary Cool Water DNA and intensifies it — a bold, concentrated interpretation with deeper woods and aquatic richness.", accords:[["Aquatic",88],["Woody",75],["Aromatic",65],["Citrus",55],["Musky",45]] },
     };
 
-    // Match fragrance name to data (flexible partial match)
+    // Match fragrance name to data — brand-aware, word-boundary safe matching
     function getFragranceInfo(name, brand){
-      const fullName = name;
-      // Try exact key first
-      if(fragranceData[fullName]) return fragranceData[fullName];
-      // Try with brand prefix stripped
-      const stripped = fullName.toLowerCase().replace(brand.toLowerCase(),'').replace(/\s*(edp|edt|parfum|edc)\s*/gi,'').replace(/\d+\s*ml/gi,'').replace(/[()]/g,'').trim();
-      for(const key of Object.keys(fragranceData)){
-        const k = key.toLowerCase().replace(brand.toLowerCase(),'').trim();
-        if(stripped.includes(k) || k.includes(stripped.replace(/\s+/g,' '))) return fragranceData[key];
+      // Strip size/type noise from the product name
+      function cleanName(n, b){
+        return n.toLowerCase()
+          .replace(b.toLowerCase(),'')
+          .replace(/\s*(edp|edt|parfum|edc|body|deo)\s*/gi,'')
+          .replace(/\d+(\.\d+)?\s*ml/gi,'')
+          .replace(/\s*spray\s*/gi,'')
+          .replace(/\s*intense\s*/gi,'')
+          .replace(/\s*pour\s*(homme|femme)\s*/gi,'')
+          .replace(/[()]/g,'')
+          .replace(/\s+/g,' ')
+          .trim();
       }
+
+      // Exact key match first
+      if(fragranceData[name]) return fragranceData[name];
+
+      const stripped = cleanName(name, brand);
+
+      // Score-based matching: only match if the key is a meaningful substring
+      // using word-boundary logic to avoid "one" matching "The One" for wrong brands
+      for(const key of Object.keys(fragranceData)){
+        const cleanKey = cleanName(key, brand);
+        if(!cleanKey) continue;
+
+        // Exact stripped match
+        if(stripped === cleanKey) return fragranceData[key];
+
+        // Key words must all appear as whole words in the stripped name
+        // AND the key must be at least 2 chars
+        if(cleanKey.length >= 2){
+          const keyWords = cleanKey.split(/\s+/).filter(w=>w.length>=2);
+          const strippedWords = stripped.split(/\s+/);
+          const allMatch = keyWords.every(kw=>strippedWords.some(sw=>sw===kw));
+          if(allMatch && keyWords.length >= 1) return fragranceData[key];
+        }
+      }
+
       // Fallback to type-based info
       const typeDefaults = {
-        'EDP':    { accords:["Floral","Woody","Musky","Warm Spicy","Amber"] },
-        'EDT':    { accords:["Citrus","Aromatic","Fresh","Woody","Musky"] },
-        'Parfum': { accords:["Floral","Oriental","Woody","Amber","Musky"] },
-        'EDC':    { accords:["Citrus","Fresh","Aquatic","Light Musky","Aromatic"] }
+        'EDP':    { accords:[["Floral",85],["Woody",70],["Musky",65],["Warm Spicy",55],["Amber",45]] },
+        'EDT':    { accords:[["Citrus",85],["Aromatic",72],["Fresh",65],["Woody",55],["Musky",45]] },
+        'Parfum': { accords:[["Floral",88],["Oriental",75],["Woody",65],["Amber",55],["Musky",48]] },
+        'EDC':    { accords:[["Citrus",82],["Fresh",70],["Aquatic",60],["Aromatic",50],["Musky",40]] }
       };
-      return typeDefaults[mp.type] || { accords:["Floral","Woody","Musky","Warm","Amber"] };
+      return typeDefaults[mp.type] || { accords:[["Floral",80],["Woody",68],["Musky",60],["Warm",50],["Amber",42]] };
     }
     const fragInfo = getFragranceInfo(mp.name, mp.brand);
-    const accords = fragInfo.accords || [];
+    const rawAccords = fragInfo.accords || [];
     const fragYear = fragInfo.year || null;
     const fragStory = fragInfo.story || null;
 
-    const accordColors = ["#e8f0ee","#f0e8ee","#eef0e8","#e8eef0","#f0ede8","#ede8f0"];
+    // Normalise accords: support both old string[] and new [name, weight][] formats
+    const accords = rawAccords.map((a,i)=>{
+      if(Array.isArray(a)) return {name:a[0], weight:a[1]};
+      // Legacy string format — assign descending weights
+      return {name:a, weight:Math.round(95 - i*10)};
+    });
+
+    // Accord bar colour palette (one per accord position)
+    const accordBarColors = ["#e8534a","#e87fa0","#e86060","#b8956a","#c8c49a","#8fbb8f","#7ec8d8","#e8c46a","#d48fa0","#9bb8a8"];
     const accordsHTML = accords.length ? `
       <div style="margin-bottom:18px">
-        <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tm);margin-bottom:8px">🌿 Main Accords</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px">
-          ${accords.map((a,i)=>`<span style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;background:${accordColors[i%accordColors.length]};color:var(--g);border:1px solid var(--mg)">${a}</span>`).join('')}
+        <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tm);margin-bottom:10px">🌿 Main Accords</div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          ${accords.map((a,i)=>{
+            const barW = Math.max(20, Math.min(100, a.weight));
+            const col = accordBarColors[i % accordBarColors.length];
+            return `<div style="display:flex;align-items:center;gap:0;position:relative;height:26px">
+              <div style="position:relative;width:100%;background:var(--mg);border-radius:4px;overflow:hidden;height:26px">
+                <div style="width:${barW}%;background:${col};height:100%;border-radius:4px;transition:width .4s ease"></div>
+                <span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.35);white-space:nowrap;letter-spacing:.03em">${a.name}</span>
+              </div>
+            </div>`;
+          }).join('')}
         </div>
       </div>` : '';
 
