@@ -190,8 +190,8 @@ ul{list-style:none}
 .pcard{background:var(--w);border-radius:8px;border:1px solid var(--bd);overflow:hidden;display:flex;flex-direction:column;cursor:pointer;transition:transform .22s,box-shadow .22s,border-color .22s}
 .pcard:hover{transform:translateY(-4px);box-shadow:0 8px 28px rgba(34,76,68,.14);border-color:var(--g)}
 .pcard.oos{opacity:.7}
-.cimg{aspect-ratio:3/4;background:#f0ebe3;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
-.cimg img{width:100%;height:100%;object-fit:cover;object-position:center top;transition:transform .6s ease;}
+.cimg{aspect-ratio:3/4;background:#f7f5f2;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.cimg img{width:85%;height:85%;object-fit:contain;object-position:center;transition:transform .6s ease;}
 .pcard:hover .cimg img{transform:scale(1.08)}
 .wbtn{position:absolute;top:10px;right:10px;background:#fff;border:1px solid var(--bd);border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:14px;opacity:0;transition:all .2s}
 .pcard:hover .wbtn{opacity:1}
@@ -330,8 +330,9 @@ footer{background:var(--td);color:#fff}
 .mov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:400;align-items:center;justify-content:center;padding:20px}
 .mov.open{display:flex}
 .mbox{background:#fff;border-radius:8px;width:860px;max-width:100%;max-height:90vh;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;position:relative;box-shadow:0 24px 80px rgba(0,0,0,.25)}
-.mimg{background:#f0ebe3;display:flex;align-items:center;justify-content:center;padding:0;border-radius:0;position:relative;min-height:360px}
-.mimg img{width:100%;height:100%;object-fit:cover;object-position:center top;position:absolute;inset:0;}
+.mimg{background:#f7f5f2;display:flex;align-items:center;justify-content:center;padding:0;border-radius:0;position:relative;min-height:360px;overflow:hidden}
+.mimg img{width:80%;height:80%;object-fit:contain;object-position:center;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);cursor:zoom-in;transition:transform .35s ease;}
+.mimg.zoomed img{cursor:zoom-out;}
 .minfo{padding:40px 36px}
 .mclose{position:absolute;top:14px;right:14px;background:#fff;border:1px solid var(--bd);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--tm)}
 .mclose:hover{background:var(--lg)}
@@ -2130,7 +2131,7 @@ let wishlist  = [];  // [sku]
 
 let filter = {brand:'ALL',gender:'all',type:'ALL',search:'',sort:'featured',inStockOnly:false,page:1};
 
-const PER = 24;
+const PER = 12;
 
 /* ================================================================
    INIT
@@ -2152,7 +2153,15 @@ async function loadImagesFromStorage(){
     keys.forEach(k => {
       try {
         const val = localStorage.getItem(k);
-        if(val) imgStore[k.replace('dzimg:','')] = val;
+        if(val){
+          // Try parsing as JSON array (new multi-image format)
+          try {
+            const parsed = JSON.parse(val);
+            if(Array.isArray(parsed)) { imgStore[k.replace('dzimg:','')] = parsed; return; }
+          } catch(e2){}
+          // Legacy: plain string
+          imgStore[k.replace('dzimg:','')] = val;
+        }
       } catch(e){}
     });
   } catch(e){}
@@ -2178,23 +2187,26 @@ async function loadImagesFromStorage(){
 }
 let _imgLoaded = false;
 
-async function saveImgKey(sku, dataUrl){
-  imgStore[sku] = dataUrl;
-  // PRIMARY: save to localStorage per-SKU key
+async function saveImgKey(sku, dataUrl, slot){
+  slot = (typeof slot === 'number') ? slot : 0;
+  // Upgrade to array if needed
+  let arr = Array.isArray(imgStore[sku]) ? [...imgStore[sku]] : [imgStore[sku]||null, null, null];
+  arr[slot] = dataUrl;
+  imgStore[sku] = arr;
+  // PRIMARY: save full array to localStorage per-SKU key
   try {
-    localStorage.setItem('dzimg:'+sku, dataUrl);
+    localStorage.setItem('dzimg:'+sku, JSON.stringify(arr));
   } catch(e){
-    // localStorage might be full — try to clear old entries and retry
     try {
       const keys = Object.keys(localStorage).filter(k=>k.startsWith('dzimg:'));
-      if(keys.length > 0){ localStorage.removeItem(keys[0]); localStorage.setItem('dzimg:'+sku, dataUrl); }
+      if(keys.length > 0){ localStorage.removeItem(keys[0]); localStorage.setItem('dzimg:'+sku, JSON.stringify(arr)); }
     } catch(e2){
       toast('⚠️ Storage full! Try removing some images first, or use Download for Vercel to bake them in.');
     }
   }
   // SECONDARY: also try window.storage if available
   if(typeof window.storage !== 'undefined'){
-    try { await window.storage.set('img:'+sku, dataUrl); } catch(e){}
+    try { await window.storage.set('img:'+sku, JSON.stringify(arr)); } catch(e){}
   }
 }
 async function deleteImgKey(sku){
@@ -2215,15 +2227,21 @@ function saveCart(){ try{ localStorage.setItem(CART_KEY,JSON.stringify(cart)); }
 function saveWish(){ try{ localStorage.setItem(WISH_KEY,JSON.stringify(wishlist)); }catch(e){} }
 
 function getImg(sku){
-  if(imgStore[sku]) return imgStore[sku];
-  if(typeof _BAKED_IMAGES!=="undefined"&&_BAKED_IMAGES[sku]) return _BAKED_IMAGES[sku];
-  return "img/"+sku+".avif";
+  const val = imgStore[sku];
+  if(Array.isArray(val)){
+    const found = val.find(v => v && typeof v === 'string' && v.length > 0);
+    if(found) return found;
+  } else if(val && typeof val === 'string' && val.length > 0){
+    return val;
+  }
+  if(typeof _BAKED_IMAGES !== "undefined" && _BAKED_IMAGES[sku]) return _BAKED_IMAGES[sku];
+  return null;
 }
 
 // Returns an img tag that tries avif -> png -> jpg automatically
 function imgTag(sku, name, attrs){
-  const stored = imgStore[sku] || (typeof _BAKED_IMAGES!=="undefined" && _BAKED_IMAGES[sku]);
-  if(stored){
+  const stored = getImg(sku);  // handles array slots, baked images, and legacy strings
+  if(stored && stored.startsWith('data:')){
     return '<img src="' + stored + '" alt="' + name + '" ' + (attrs||'')+'>';
   }
   const base = "img/"+sku;
@@ -2231,8 +2249,18 @@ function imgTag(sku, name, attrs){
     'onerror="if(this.dataset.t===\'avif\'){this.dataset.t=\'png\';this.src=\'' + base + '.png\';}else if(this.dataset.t===\'png\'){this.dataset.t=\'jpg\';this.src=\'' + base + '.jpg\';}else{this.style.display=\'none\';var n=this.nextElementSibling;if(n)n.style.display=\'block\';}">';
 }
 // Returns true only if an image was explicitly uploaded/baked (not just a fallback path)
+// Return array of up to 3 image slots for a sku [img0, img1, img2] (null if empty)
+function getImgSlots(sku){
+  const val = imgStore[sku];
+  if(!val) return [null, null, null];
+  if(Array.isArray(val)) return [val[0]||null, val[1]||null, val[2]||null];
+  return [val, null, null]; // legacy single string
+}
+
 function hasUploadedImg(sku){
-  if(imgStore[sku]) return true;
+  const val = imgStore[sku];
+  if(Array.isArray(val)) return val.some(v => v && typeof v === 'string' && v.length > 0);
+  if(val && typeof val === 'string' && val.length > 0) return true;
   if(typeof _BAKED_IMAGES!=="undefined"&&_BAKED_IMAGES[sku]) return true;
   return false;
 }
@@ -2486,7 +2514,7 @@ function renderGrid(){
       .trim() || p.name;
 
     return `
-    <article class="pcard${oos?' oos':''}" onclick="openModal('${p.sku}','${groupKey}')">
+    <article class="pcard${oos?' oos':''}" onclick="openModal('${p.sku.replace(/'/g,"\\'")}','${groupKey.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">
       <div class="cimg">
         ${imgTag(p.sku, p.name, 'id="cimg-'+groupKey.replace(/[^a-z0-9]/g,'_')+'" loading="lazy"')}
         <svg style="display:none;opacity:.18" width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="20" y="8" width="24" height="4" rx="2" fill="#224C44"/><rect x="8" y="14" width="48" height="42" rx="4" fill="#224C44"/><rect x="22" y="20" width="20" height="3" rx="1.5" fill="white"/></svg>
@@ -2508,9 +2536,9 @@ function renderGrid(){
           <div class="cprice" id="cprice-${groupKey.replace(/[^a-z0-9]/g,'_')}">${fmt(p.price)}<sub>incl. VAT</sub></div>
           ${oos
             ? `<button class="addbtn oos" disabled>Out of Stock</button>`
-            : `<button class="addbtn${inCart?' added':''}" id="caddbtn-${p.sku}" onclick="event.stopPropagation();${hasVariants?`openModal('${p.sku}','${groupKey}')`:`addToCart('${p.sku}')`}">
+            : `<button class="addbtn${inCart?' added':''}" id="caddbtn-${p.sku}" onclick="event.stopPropagation();${hasVariants?`openModal('${p.sku.replace(/'/g,"\\'")}','${groupKey.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;')}')`:`addToCart('${p.sku}')`}">
                 <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-                ${hasVariants?'Select':''}${!hasVariants&&inCart?'Added':''}${!hasVariants&&!inCart?'Add':''}
+                ${hasVariants?'Select':''}${!hasVariants&&inCart?'Added':''}${!hasVariants&&!inCart?'Add to Cart':''}
               </button>`
           }
         </div>
@@ -2734,19 +2762,83 @@ function openModal(sku, groupKey){
     const oos = !isInStock(mp.sku);
     const stkInfo = getStkInfo(mp.sku);
 
-    // Update image panel
-    const hasImg = hasUploadedImg(mp.sku);
+    // Update image panel — multi-image carousel
+    const imgSlots = getImgSlots(mp.sku);   // array of up to 3 data-URLs (may include nulls)
     const base = "img/"+mp.sku;
-    document.getElementById('mimg').innerHTML = hasImg
-      ? `<img src="${img}" alt="${mp.name}" style="width:100%;height:100%;object-fit:cover;object-position:center top;position:absolute;inset:0;" onerror="this.style.display='none'">`
-      : `<img src="${base}.avif" alt="${mp.name}" data-t="avif"
-           style="width:100%;height:100%;object-fit:cover;object-position:center top;position:absolute;inset:0;"
-           onerror="(function(el){
-             if(el.dataset.t==='avif'){el.dataset.t='png';el.src='${base}.png';}
-             else if(el.dataset.t==='png'){el.dataset.t='jpg';el.src='${base}.jpg';}
-             else{el.style.display='none';var n=el.nextElementSibling;if(n)n.style.display='flex';}
-           })(this)">
-         <div style="display:none;flex-direction:column;align-items:center;gap:12px;color:var(--tl);position:absolute;inset:0;justify-content:center"><svg width="80" height="80" viewBox="0 0 64 64" fill="none"><rect x="20" y="8" width="24" height="4" rx="2" fill="#224C44" opacity=".3"/><rect x="8" y="14" width="48" height="42" rx="4" fill="#224C44" opacity=".3"/></svg><span style="font-size:11px">No image yet</span></div>`;
+    const imgStyle = "width:80%;height:80%;object-fit:contain;object-position:center;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);transition:opacity .25s ease;";
+    // Build slides: uploaded slots + static img/ files (sku.avif, sku_2.avif, sku_3.avif)
+    const slides = [];
+
+    // Slot 0: uploaded photo OR static img/sku.avif
+    const uploadSlot0 = imgSlots[0];
+    if(uploadSlot0) slides.push({src:uploadSlot0, type:'upload'});
+    else slides.push({src:null, type:'static', suffix:''});
+
+    // Slots 1 & 2: uploaded OR static img/sku_2 / img/sku_3
+    [[1,'_2'],[2,'_3']].forEach(([idx,suffix])=>{
+      const up = imgSlots[idx];
+      if(up) slides.push({src:up, type:'upload'});
+      else slides.push({src:null, type:'static', suffix});
+    });
+
+    const totalSlides = slides.length;
+    const carouselId = 'mcar_'+mp.sku.replace(/[^a-z0-9]/gi,'_');
+    window._carouselState = window._carouselState || {};
+    window._carouselState[carouselId] = 0;
+
+    function buildSlide(slide){
+      if(slide.type==='upload'){
+        return `<img src="${slide.src}" alt="${mp.name}" style="${imgStyle}" onerror="this.style.display='none'">`;
+      }
+      // Static file: try avif → png → jpg, hide slide if all fail
+      const b = base + (slide.suffix||'');
+      return `<img src="${b}.avif" alt="${mp.name}" data-t="avif" style="${imgStyle}"
+        onerror="(function(el){
+          if(el.dataset.t==='avif'){el.dataset.t='png';el.src='${b}.png';}
+          else if(el.dataset.t==='png'){el.dataset.t='jpg';el.src='${b}.jpg';}
+          else{
+            el.style.display='none';
+            var slide=el.closest('.cslide');
+            if(slide){
+              slide.style.display='none';
+              slide.dataset.missing='1';
+              var wrap=slide.parentElement;
+              if(wrap){
+                var visible=wrap.querySelectorAll('.cslide:not([data-missing])');
+                wrap.querySelectorAll('.cdot').forEach(function(d,i){
+                  if(wrap.querySelectorAll('.cslide')[i] && wrap.querySelectorAll('.cslide')[i].dataset.missing) d.style.display='none';
+                });
+                if(visible.length<=1) wrap.querySelectorAll('.cdot,.cslide~button').forEach(function(el){el.style.display='none';});
+              }
+            }
+          }
+        })(this)">`;
+    }
+    // Navigation functions (global, keyed by carouselId)
+    window['_goSlide_'+carouselId] = function(dir){
+      const s = window._carouselState;
+      s[carouselId] = (s[carouselId]+dir+totalSlides)%totalSlides;
+      const wrap = document.getElementById(carouselId+'_wrap');
+      if(!wrap) return;
+      wrap.querySelectorAll('.cslide').forEach((el,i)=>{ el.style.display = i===s[carouselId]?'flex':'none'; });
+      wrap.querySelectorAll('.cdot').forEach((el,i)=>{ el.style.opacity = i===s[carouselId]?'1':'0.35'; });
+    };
+    const dotsHTML = totalSlides > 1
+      ? `<div style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:3">
+           ${slides.map((_,i)=>`<div class="cdot" style="width:7px;height:7px;border-radius:50%;background:var(--g);opacity:${i===0?1:0.35};transition:opacity .2s;cursor:pointer" onclick="window['_goSlide_${carouselId}'](${i - (window._carouselState['${carouselId}']||0)});"></div>`).join('')}
+         </div>` : '';
+    const arrowsHTML = totalSlides > 1
+      ? `<button onclick="window['_goSlide_${carouselId}'](-1)" style="position:absolute;left:6px;top:50%;transform:translateY(-50%);z-index:3;background:rgba(255,255,255,.8);border:none;border-radius:50%;width:28px;height:28px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.15)">‹</button>
+         <button onclick="window['_goSlide_${carouselId}'](1)" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);z-index:3;background:rgba(255,255,255,.8);border:none;border-radius:50%;width:28px;height:28px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.15)">›</button>` : '';
+    document.getElementById('mimg').innerHTML = `
+      <div id="${carouselId}_wrap" style="position:relative;width:100%;height:100%;min-height:360px;">
+        ${slides.map((slide,i)=>`
+          <div class="cslide" style="display:${i===0?'flex':'none'};position:absolute;inset:0;align-items:center;justify-content:center;">
+            ${buildSlide(slide)}
+          </div>`).join('')}
+        ${arrowsHTML}
+        ${dotsHTML}
+      </div>`;
 
     // Clean display name
     let displayName = mp.name;
@@ -3033,9 +3125,33 @@ function openModal(sku, groupKey){
   renderModalBody(sku);
   document.getElementById('mov').classList.add('open');
   document.body.style.overflow='hidden';
+
+  // Attach zoom on click to modal image area
+  const mimg = document.getElementById('mimg');
+  if(mimg){
+    mimg._zoomHandler && mimg.removeEventListener('click', mimg._zoomHandler);
+    mimg._zoomHandler = function(e){
+      // Don't zoom if clicking nav arrows or dots
+      if(e.target.closest('button')||e.target.classList.contains('cdot')) return;
+      const img = mimg.querySelector('.cslide[style*="flex"] img, img');
+      if(!img) return;
+      const isZoomed = mimg.classList.toggle('zoomed');
+      if(isZoomed){
+        // Zoom toward click position
+        const r = mimg.getBoundingClientRect();
+        const px = ((e.clientX - r.left) / r.width  - 0.5) * -60;
+        const py = ((e.clientY - r.top)  / r.height - 0.5) * -60;
+        img.style.transform = `translate(calc(-50% + ${px}px), calc(-50% + ${py}px)) scale(2.2)`;
+      } else {
+        img.style.transform = 'translate(-50%,-50%) scale(1)';
+      }
+    };
+    mimg.addEventListener('click', mimg._zoomHandler);
+  }
+
   // Update sticky footer for mobile
   const sf = document.getElementById('mbox-sticky-foot');
-  if(sf) sf.innerHTML = ''; // cleared; renderModalBody now handles it via window.switchModalVariant
+  if(sf) sf.innerHTML = '';
 }
 
 
@@ -3051,6 +3167,9 @@ function toggleHistory(hid){
 function closeModal(){
   document.getElementById('mov').classList.remove('open');
   document.body.style.overflow='';
+  // Reset zoom
+  const mimg = document.getElementById('mimg');
+  if(mimg){ mimg.classList.remove('zoomed'); const img=mimg.querySelector('img'); if(img) img.style.transform='translate(-50%,-50%) scale(1)'; }
 }
 
 /* ================================================================
@@ -3187,88 +3306,101 @@ function renderImgList(){
   const imgList=document.getElementById('img-list');
   if(!imgList) return;
   imgList.innerHTML=list.map(p=>{
-    const img=getImg(p.sku); const has=hasUploadedImg(p.sku);
-    return `<div class="img-row${has?' has-img':''}" id="imgrow-${p.sku}">
-      <div class="img-th">
-        <img id="ithumb-${p.sku}" src="${img}" alt="${p.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
-        <svg style="display:none" width="36" height="36" viewBox="0 0 36 36" fill="none"><rect x="5" y="2" width="26" height="32" rx="3" fill="#e8e4de"/></svg>
+    const slots = getImgSlots(p.sku);
+    const has = slots.some(s=>!!s);
+    const slotsHTML = [0,1,2].map(i => {
+      const src = slots[i];
+      const label = ['Main Photo','Photo 2','Photo 3'][i];
+      const inputId = 'upl_'+p.sku.replace(/[^a-z0-9]/gi,'_')+'_'+i;
+      return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:80px">
+        <label for="${inputId}" style="cursor:pointer;display:block">
+          <div style="width:72px;height:72px;background:#f7f5f2;border-radius:6px;border:2px dashed ${src?'#224C44':'#bbb'};display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;transition:border-color .2s" onmouseover="this.style.borderColor='#224C44'" onmouseout="this.style.borderColor='${src?'#224C44':'#bbb'}'">
+            <img id="ithumb-${p.sku}-${i}" src="${src||''}" alt="" style="width:100%;height:100%;object-fit:contain;display:${src?'block':'none'}">
+            ${!src?`<span style="font-size:22px;opacity:.3">＋</span>`:''}
+          </div>
+        </label>
+        <input id="${inputId}" type="file" accept="image/*" style="display:none" onchange="handleUpload('${p.sku}',this,${i})">
+        <span style="font-size:9px;color:${src?'#224C44':'#999'};font-weight:600;text-align:center;line-height:1.3">${src?'✓ '+label:label}</span>
+        ${src?`<button onclick="clearImgSlot('${p.sku}',${i})" style="font-size:9px;color:#c00;background:none;border:none;cursor:pointer;padding:0;line-height:1">✕ Remove</button>`:'<span style="font-size:9px;color:#bbb">click to upload</span>'}
+      </div>`;
+    }).join('');
+    return `<div class="img-row${has?' has-img':''}" id="imgrow-${p.sku}" style="display:flex;align-items:center;gap:16px;padding:14px;border:1px solid var(--mg);border-radius:8px;margin-bottom:8px;flex-wrap:wrap">
+      <div style="flex:1;min-width:140px">
+        <div class="ibrand" style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tm)">${p.brand}</div>
+        <div class="iname" style="font-size:12px;font-weight:600;color:var(--g);margin:2px 0">${p.name.length>50?p.name.slice(0,50)+'…':p.name}</div>
+        <div class="isku" style="font-size:10px;color:var(--tl)">SKU: ${p.sku}</div>
       </div>
-      <div class="img-info">
-        <div class="ibrand">${p.brand}</div>
-        <div class="iname">${p.name.length>60?p.name.slice(0,60)+'…':p.name}</div>
-        <div class="isku">SKU: ${p.sku} &nbsp;·&nbsp; <span style="color:#224C44;font-size:11px">save as: img/${p.sku}.png</span></div>
-      </div>
-      <div class="img-actions">
-        <div class="upl-zone">
-          <label class="upl-btn">📁 Upload Image<input type="file" accept="image/*" onchange="handleUpload('${p.sku}',this)"></label>
-          ${has?`<button class="upl-clear" onclick="clearImg('${p.sku}')">Remove</button>`:''}
-        </div>
-        <div class="img-status${has?' ok':''}" id="istat-${p.sku}">${has?'✓ Saved — click Download for Vercel':'No image'}</div>
-      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">${slotsHTML}</div>
+      <div class="img-status${has?' ok':''}" id="istat-${p.sku}" style="width:100%;margin-top:2px;font-size:11px">${has?'✓ Image(s) saved':'No images yet'}</div>
     </div>`;
   }).join('');
 }
 
-async function handleUpload(sku,input){
-  const file=input.files[0]; if(!file) return;
+async function handleUpload(sku, input, slot){
+  slot = parseInt(slot, 10); if(isNaN(slot)) slot = 0;
+  const file = input.files[0]; if(!file) return;
   if(!file.type.startsWith('image/')){
-    toast('\u274c Not an image file. Please select JPG, PNG, WebP, or AVIF.');
+    toast('❌ Not an image file. Please select JPG, PNG, WebP, or AVIF.');
     input.value=''; return;
   }
-  const ext=file.name.split('.').pop().toLowerCase();
-  const sizeKB=Math.round(file.size/1024);
-  if(file.size>8*1024*1024){
+  const ext = file.name.split('.').pop().toLowerCase();
+  if(file.size > 8*1024*1024){
     if(!confirm('This image is '+(file.size/1024/1024).toFixed(1)+'MB. Large images slow the site. Continue?')){ input.value=''; return; }
   }
-  const stat=document.getElementById('istat-'+sku);
-  if(stat){ stat.textContent='\u23f3 Processing '+ext.toUpperCase()+'...'; stat.className='img-status'; }
-  const reader=new FileReader();
-  reader.onerror=()=>{ toast('\u274c Could not read file. Try again.'); input.value=''; };
-  reader.onload=async (e)=>{
-    const img=new Image();
-    img.onerror=()=>{
+  const stat = document.getElementById('istat-'+sku);
+  if(stat){ stat.textContent='⏳ Processing '+ext.toUpperCase()+'...'; stat.className='img-status'; }
+
+  const reader = new FileReader();
+  reader.onerror = ()=>{ toast('❌ Could not read file. Try again.'); input.value=''; };
+  reader.onload = async (e)=>{
+    const imgEl = new Image();
+    imgEl.onerror = ()=>{
       if(file.type==='image/avif'||ext==='avif'){
-        toast('\u26a0\ufe0f AVIF failed. Try Chrome/Edge, or convert to JPG/PNG/WebP first.');
+        toast('⚠️ AVIF failed. Try Chrome/Edge, or convert to JPG/PNG/WebP first.');
       } else {
-        toast('\u274c Could not decode image. Try saving as JPG or PNG.');
+        toast('❌ Could not decode image. Try saving as JPG or PNG.');
       }
-      if(stat){ stat.textContent='\u274c Failed \u2014 try JPG/PNG'; stat.className='img-status'; }
+      if(stat){ stat.textContent='❌ Failed — try JPG/PNG'; stat.className='img-status'; }
       input.value='';
     };
-    img.onload=async ()=>{
-      const canvas=document.createElement('canvas');
-      const MAX=800; let w=img.width,h=img.height;
+    imgEl.onload = async ()=>{
+      const canvas = document.createElement('canvas');
+      const MAX = 800; let w = imgEl.width, h = imgEl.height;
       if(w>MAX||h>MAX){ if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;} }
       canvas.width=w; canvas.height=h;
-      const ctx=canvas.getContext('2d');
+      const ctx = canvas.getContext('2d');
       ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,w,h);
-      ctx.drawImage(img,0,0,w,h);
-      let out=canvas.toDataURL('image/webp',0.82);
-      if(!out.startsWith('data:image/webp')) out=canvas.toDataURL('image/jpeg',0.82);
-      const finalKB=Math.round(out.length/1024);
-      const savedFmt=out.startsWith('data:image/webp')?'WebP':'JPEG';
-      await saveImgKey(sku,out);
-      // Update thumbnail IN PLACE without re-rendering the whole list
-      const thumb=document.getElementById('ithumb-'+sku);
-      if(thumb){ thumb.src=out; thumb.style.display='block'; if(thumb.nextElementSibling) thumb.nextElementSibling.style.display='none'; }
-      const row=document.getElementById('imgrow-'+sku);
-      if(row) row.classList.add('has-img');
-      const zone=row?row.querySelector('.upl-zone'):null;
-      if(zone&&!zone.querySelector('.upl-clear')){
-        const btn=document.createElement('button');
-        btn.className='upl-clear'; btn.textContent='Remove';
-        btn.onclick=()=>clearImg(sku);
-        zone.appendChild(btn);
+      ctx.drawImage(imgEl,0,0,w,h);
+      let out = canvas.toDataURL('image/webp',0.82);
+      if(!out.startsWith('data:image/webp')) out = canvas.toDataURL('image/jpeg',0.82);
+      const finalKB = Math.round(out.length/1024);
+      const savedFmt = out.startsWith('data:image/webp')?'WebP':'JPEG';
+
+      await saveImgKey(sku, out, slot);
+
+      // Refresh the thumbnail for this slot in-place
+      const thumb = document.getElementById('ithumb-'+sku+'-'+slot);
+      if(thumb){
+        thumb.src = out;
+        thumb.style.display = 'block';
+        const svg = thumb.nextElementSibling;
+        if(svg) svg.style.display = 'none';
       }
-      if(stat){ stat.textContent='\u2713 '+ext.toUpperCase()+' saved as '+savedFmt+' ('+finalKB+'KB)'; stat.className='img-status ok'; }
+      // Update label to show ✓
+      const label = thumb ? thumb.closest('div[style]')?.querySelector('label') : null;
+      if(label){ const t=label.childNodes[0]; if(t&&t.nodeType===3) t.textContent = ['✓ Main Photo','✓ Photo 2','✓ Photo 3'][slot]+'\n'; }
+
+      const row = document.getElementById('imgrow-'+sku);
+      if(row) row.classList.add('has-img');
+      if(stat){ stat.textContent='✓ Photo '+(slot+1)+' saved as '+savedFmt+' ('+finalKB+'KB)'; stat.className='img-status ok'; }
       updateImgProgress();
       renderAdmStats();
-      toast('\u2713 '+(RAW.find(p=>p.sku===sku)?.brand||sku)+': '+ext.toUpperCase()+' image saved!');
+      input.value='';
+      toast('✓ '+(RAW.find(p=>p.sku===sku)?.name||sku)+' — Photo '+(slot+1)+' saved!');
     };
-    img.src=e.target.result;
+    imgEl.src = e.target.result;
   };
   reader.readAsDataURL(file);
-  input.value='';
 }
 
 function updateImgProgress(){
@@ -3280,6 +3412,13 @@ function updateImgProgress(){
   if(fill) fill.style.width=pct+'%';
 }
 async function clearImg(sku){ await deleteImgKey(sku); renderImgList(); renderAdmStats(); renderGrid(); toast('Image removed'); }
+async function clearImgSlot(sku, slot){
+  let arr = Array.isArray(imgStore[sku]) ? [...imgStore[sku]] : [imgStore[sku]||null,null,null];
+  arr[slot] = null;
+  if(arr.every(v=>!v)){ delete imgStore[sku]; await deleteImgKey(sku); }
+  else { imgStore[sku] = arr; try{ localStorage.setItem('dzimg:'+sku, JSON.stringify(arr)); }catch(e){} }
+  renderImgList(); renderAdmStats(); renderGrid(); toast('Photo '+(slot+1)+' removed');
+}
 
 /* ── DOWNLOAD FOR VERCEL ─────────────────────────────── */
 async function downloadVercelHTML(){
