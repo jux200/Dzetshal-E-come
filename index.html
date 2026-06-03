@@ -329,9 +329,13 @@ footer{background:var(--td);color:#fff}
 /* ── MODAL ───────────────────────────────────────────── */
 .mov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:400;align-items:center;justify-content:center;padding:20px}
 .mov.open{display:flex}
-.mbox{background:#fff;border-radius:8px;width:860px;max-width:100%;max-height:90vh;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;position:relative;box-shadow:0 24px 80px rgba(0,0,0,.25)}
-.mimg{background:#f7f5f2;display:flex;align-items:center;justify-content:center;padding:0;border-radius:0;position:relative;min-height:360px;overflow:hidden}
-.mimg img{width:80%;height:80%;object-fit:contain;object-position:center;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);cursor:zoom-in;transition:transform .35s ease;}
+.mbox{background:#fff;border-radius:8px;width:960px;max-width:100%;max-height:90vh;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;position:relative;box-shadow:0 24px 80px rgba(0,0,0,.25)}
+.mimg{background:#f7f5f2;display:flex;align-items:center;justify-content:center;padding:0;border-radius:0;position:relative;min-height:360px;overflow:visible;}
+.mimg img{width:80%;height:80%;object-fit:contain;object-position:center;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);cursor:crosshair;transition:none;user-select:none;-webkit-user-drag:none;}
+/* Zoom lens overlay */
+.mzoom-lens{position:absolute;border:2px solid #224C44;border-radius:4px;width:100px;height:100px;pointer-events:none;display:none;z-index:10;box-shadow:0 0 0 1px rgba(255,255,255,.5);background:rgba(34,76,68,.08);}
+/* Zoom result panel */
+.mzoom-result{display:none;position:absolute;left:calc(100% + 12px);top:0;width:380px;height:100%;min-height:360px;border:1px solid var(--bd);border-radius:8px;background:#fff;background-repeat:no-repeat;box-shadow:0 8px 40px rgba(0,0,0,.18);z-index:500;pointer-events:none;}
 .mimg.zoomed img{cursor:zoom-out;}
 .minfo{padding:40px 36px}
 .mclose{position:absolute;top:14px;right:14px;background:#fff;border:1px solid var(--bd);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--tm)}
@@ -2241,11 +2245,11 @@ function getImg(sku){
 // Returns an img tag that tries avif -> png -> jpg automatically
 function imgTag(sku, name, attrs){
   const stored = getImg(sku);  // handles array slots, baked images, and legacy strings
-  if(stored && stored.startsWith('data:')){
-    return '<img src="' + stored + '" alt="' + name + '" ' + (attrs||'')+'>';
+  if(stored){
+    return '<img src="' + stored + '" alt="' + name + '" data-sku="' + sku + '" ' + (attrs||'')+' onerror="this.style.display=\'none\'">';
   }
   const base = "img/"+sku;
-  return '<img src="' + base + '.avif" alt="' + name + '" ' + (attrs||'')+' data-t="avif" '+
+  return '<img src="' + base + '.avif" alt="' + name + '" data-sku="' + sku + '" ' + (attrs||'')+' data-t="avif" '+
     'onerror="if(this.dataset.t===\'avif\'){this.dataset.t=\'png\';this.src=\'' + base + '.png\';}else if(this.dataset.t===\'png\'){this.dataset.t=\'jpg\';this.src=\'' + base + '.jpg\';}else{this.style.display=\'none\';var n=this.nextElementSibling;if(n)n.style.display=\'block\';}">';
 }
 // Returns true only if an image was explicitly uploaded/baked (not just a fallback path)
@@ -3126,27 +3130,86 @@ function openModal(sku, groupKey){
   document.getElementById('mov').classList.add('open');
   document.body.style.overflow='hidden';
 
-  // Attach zoom on click to modal image area
+  // Attach magnifier zoom to modal image area
   const mimg = document.getElementById('mimg');
   if(mimg){
-    mimg._zoomHandler && mimg.removeEventListener('click', mimg._zoomHandler);
+    // Remove old handlers
+    if(mimg._zoomHandler) mimg.removeEventListener('mousemove', mimg._zoomHandler);
+    if(mimg._zoomLeave)   mimg.removeEventListener('mouseleave', mimg._zoomLeave);
+
+    // Create lens and result panel once
+    let lens = mimg.querySelector('.mzoom-lens');
+    let result = mimg.querySelector('.mzoom-result');
+    if(!lens){ lens = document.createElement('div'); lens.className='mzoom-lens'; mimg.appendChild(lens); }
+    if(!result){ result = document.createElement('div'); result.className='mzoom-result'; mimg.appendChild(result); }
+
+    function getActiveImg(){
+      // Get visible slide's img, or fallback to any img
+      return mimg.querySelector('.cslide:not([data-missing])[style*="flex"] img')
+          || mimg.querySelector('.cslide[style*="flex"] img')
+          || mimg.querySelector('img');
+    }
+
     mimg._zoomHandler = function(e){
-      // Don't zoom if clicking nav arrows or dots
-      if(e.target.closest('button')||e.target.classList.contains('cdot')) return;
-      const img = mimg.querySelector('.cslide[style*="flex"] img, img');
-      if(!img) return;
-      const isZoomed = mimg.classList.toggle('zoomed');
-      if(isZoomed){
-        // Zoom toward click position
-        const r = mimg.getBoundingClientRect();
-        const px = ((e.clientX - r.left) / r.width  - 0.5) * -60;
-        const py = ((e.clientY - r.top)  / r.height - 0.5) * -60;
-        img.style.transform = `translate(calc(-50% + ${px}px), calc(-50% + ${py}px)) scale(2.2)`;
-      } else {
-        img.style.transform = 'translate(-50%,-50%) scale(1)';
+      const img = getActiveImg();
+      if(!img || !img.complete || !img.naturalWidth) return;
+
+      const imgRect = img.getBoundingClientRect();
+      const mimgRect = mimg.getBoundingClientRect();
+
+      // Mouse position relative to the image itself
+      const mx = e.clientX - imgRect.left;
+      const my = e.clientY - imgRect.top;
+
+      // Only activate when hovering over the actual image
+      if(mx < 0 || my < 0 || mx > imgRect.width || my > imgRect.height){
+        lens.style.display = 'none';
+        result.style.display = 'none';
+        return;
       }
+
+      const ZOOM = 2.8;
+      const lensW = lens.offsetWidth || 100;
+      const lensH = lens.offsetHeight || 100;
+
+      // Lens position relative to mimg container
+      let lx = (e.clientX - mimgRect.left) - lensW/2;
+      let ly = (e.clientY - mimgRect.top)  - lensH/2;
+      lx = Math.max(imgRect.left - mimgRect.left, Math.min(lx, imgRect.right  - mimgRect.left - lensW));
+      ly = Math.max(imgRect.top  - mimgRect.top,  Math.min(ly, imgRect.bottom - mimgRect.top  - lensH));
+      lens.style.left    = lx + 'px';
+      lens.style.top     = ly + 'px';
+      lens.style.display = 'block';
+
+      // Result panel size = mimg height
+      const rW = 380, rH = mimgRect.height;
+      result.style.width  = rW + 'px';
+      result.style.height = rH + 'px';
+      result.style.display = 'block';
+
+      // Background = zoomed image
+      const bgW = imgRect.width  * ZOOM;
+      const bgH = imgRect.height * ZOOM;
+      // Offset so the area under the lens is centred in the result panel
+      const ratioX = mx / imgRect.width;
+      const ratioY = my / imgRect.height;
+      const bgX = -(ratioX * bgW - rW/2);
+      const bgY = -(ratioY * bgH - rH/2);
+
+      result.style.backgroundImage    = `url('${img.src}')`;
+      result.style.backgroundSize     = `${bgW}px ${bgH}px`;
+      result.style.backgroundPosition = `${bgX}px ${bgY}px`;
+      result.style.backgroundRepeat   = 'no-repeat';
+      result.style.backgroundColor    = '#f7f5f2';
     };
-    mimg.addEventListener('click', mimg._zoomHandler);
+
+    mimg._zoomLeave = function(){
+      lens.style.display   = 'none';
+      result.style.display = 'none';
+    };
+
+    mimg.addEventListener('mousemove', mimg._zoomHandler);
+    mimg.addEventListener('mouseleave', mimg._zoomLeave);
   }
 
   // Update sticky footer for mobile
@@ -3167,9 +3230,15 @@ function toggleHistory(hid){
 function closeModal(){
   document.getElementById('mov').classList.remove('open');
   document.body.style.overflow='';
-  // Reset zoom
   const mimg = document.getElementById('mimg');
-  if(mimg){ mimg.classList.remove('zoomed'); const img=mimg.querySelector('img'); if(img) img.style.transform='translate(-50%,-50%) scale(1)'; }
+  if(mimg){
+    if(mimg._zoomHandler) mimg.removeEventListener('mousemove', mimg._zoomHandler);
+    if(mimg._zoomLeave)   mimg.removeEventListener('mouseleave', mimg._zoomLeave);
+    const lens = mimg.querySelector('.mzoom-lens');
+    const result = mimg.querySelector('.mzoom-result');
+    if(lens)   lens.style.display = 'none';
+    if(result) result.style.display = 'none';
+  }
 }
 
 /* ================================================================
@@ -3378,17 +3447,21 @@ async function handleUpload(sku, input, slot){
 
       await saveImgKey(sku, out, slot);
 
-      // Refresh the thumbnail for this slot in-place
+      // 1. Refresh admin thumbnail in-place
       const thumb = document.getElementById('ithumb-'+sku+'-'+slot);
       if(thumb){
         thumb.src = out;
         thumb.style.display = 'block';
-        const svg = thumb.nextElementSibling;
-        if(svg) svg.style.display = 'none';
+        const plusSpan = thumb.nextElementSibling;
+        if(plusSpan && plusSpan.tagName==='SPAN') plusSpan.style.display = 'none';
       }
-      // Update label to show ✓
-      const label = thumb ? thumb.closest('div[style]')?.querySelector('label') : null;
-      if(label){ const t=label.childNodes[0]; if(t&&t.nodeType===3) t.textContent = ['✓ Main Photo','✓ Photo 2','✓ Photo 3'][slot]+'\n'; }
+
+      // 2. Instantly update every card image on the home page that matches this SKU
+      document.querySelectorAll('img[data-sku="'+sku+'"]').forEach(cardImg => {
+        cardImg.src = out;
+        cardImg.style.display = 'block';
+        cardImg.onerror = null;
+      });
 
       const row = document.getElementById('imgrow-'+sku);
       if(row) row.classList.add('has-img');
