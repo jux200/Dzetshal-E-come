@@ -2249,8 +2249,8 @@ function imgTag(sku, name, attrs){
     return '<img src="' + stored + '" alt="' + name + '" data-sku="' + sku + '" ' + (attrs||'')+' onerror="this.style.display=\'none\'">';
   }
   const base = "img/"+sku;
-  return '<img src="' + base + '.avif" alt="' + name + '" data-sku="' + sku + '" ' + (attrs||'')+' data-t="avif" '+
-    'onerror="if(this.dataset.t===\'avif\'){this.dataset.t=\'png\';this.src=\'' + base + '.png\';}else if(this.dataset.t===\'png\'){this.dataset.t=\'jpg\';this.src=\'' + base + '.jpg\';}else{this.style.display=\'none\';var n=this.nextElementSibling;if(n)n.style.display=\'block\';}">';
+  return '<img src="' + base + '.webp" alt="' + name + '" data-sku="' + sku + '" ' + (attrs||'')+' data-t="webp" '+
+    'onerror="if(this.dataset.t===\'webp\'){this.dataset.t=\'avif\';this.src=\'' + base + '.avif\';}else if(this.dataset.t===\'avif\'){this.dataset.t=\'png\';this.src=\'' + base + '.png\';}else if(this.dataset.t===\'png\'){this.dataset.t=\'jpg\';this.src=\'' + base + '.jpg\';}else{this.style.display=\'none\';var n=this.nextElementSibling;if(n)n.style.display=\'block\';}">';
 }
 // Returns true only if an image was explicitly uploaded/baked (not just a fallback path)
 // Return array of up to 3 image slots for a sku [img0, img1, img2] (null if empty)
@@ -2796,9 +2796,10 @@ function openModal(sku, groupKey){
       }
       // Static file: try avif → png → jpg, hide slide if all fail
       const b = base + (slide.suffix||'');
-      return `<img src="${b}.avif" alt="${mp.name}" data-t="avif" style="${imgStyle}"
+      return `<img src="${b}.webp" alt="${mp.name}" data-t="webp" style="${imgStyle}"
         onerror="(function(el){
-          if(el.dataset.t==='avif'){el.dataset.t='png';el.src='${b}.png';}
+          if(el.dataset.t==='webp'){el.dataset.t='avif';el.src='${b}.avif';}
+          else if(el.dataset.t==='avif'){el.dataset.t='png';el.src='${b}.png';}
           else if(el.dataset.t==='png'){el.dataset.t='jpg';el.src='${b}.jpg';}
           else{
             el.style.display='none';
