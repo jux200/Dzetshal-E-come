@@ -2252,13 +2252,20 @@ function getImg(sku){
 
 // Returns an img tag that tries avif -> png -> jpg automatically
 function imgTag(sku, name, attrs){
-  const stored = getImg(sku);  // handles array slots, baked images, and legacy strings
+  const stored = getImg(sku);
   if(stored){
     return '<img src="' + stored + '" alt="' + name + '" data-sku="' + sku + '" ' + (attrs||'')+' onerror="this.style.display=\'none\'">';
   }
   const base = "img/"+sku;
-  return '<img src="' + base + '.webp" alt="' + name + '" data-sku="' + sku + '" ' + (attrs||'')+' data-t="webp" '+
-    'onerror="if(this.dataset.t===\'webp\'){this.dataset.t=\'avif\';this.src=\'' + base + '.avif\';}else if(this.dataset.t===\'avif\'){this.dataset.t=\'png\';this.src=\'' + base + '.png\';}else if(this.dataset.t===\'png\'){this.dataset.t=\'jpg\';this.src=\'' + base + '.jpg\';}else{this.style.display=\'none\';var n=this.nextElementSibling;if(n)n.style.display=\'block\';}">';
+  // Try avif → webp → png → jpg in order
+  return '<img src="' + base + '.avif" alt="' + name + '" data-sku="' + sku + '" ' + (attrs||'')+' data-t="avif" '+
+    'onerror="(function(el){'+
+      'var b=el.src.replace(/\\.[a-z0-9]+$/i,\'\');'+
+      'if(el.dataset.t===\'avif\'){el.dataset.t=\'webp\';el.src=b+\'.webp\';}'+
+      'else if(el.dataset.t===\'webp\'){el.dataset.t=\'png\';el.src=b+\'.png\';}'+
+      'else if(el.dataset.t===\'png\'){el.dataset.t=\'jpg\';el.src=b+\'.jpg\';}'+
+      'else{el.style.display=\'none\';var n=el.nextElementSibling;if(n)n.style.display=\'block\';}'+
+    '})(this)">';
 }
 // Returns true only if an image was explicitly uploaded/baked (not just a fallback path)
 // Return array of up to 3 image slots for a sku [img0, img1, img2] (null if empty)
@@ -2798,7 +2805,7 @@ function openModal(sku, groupKey){
 
     function buildThumbSrc(slide){
       if(slide.type==='upload') return slide.src;
-      return base+(slide.suffix||'')+'.webp';
+      return base+(slide.suffix||'')+'.avif';
     }
 
     function buildMainImg(slide){
@@ -2807,11 +2814,12 @@ function openModal(sku, groupKey){
       }
       const b = base+(slide.suffix||'');
       const gid = galleryId; // captured now, used in string below
-      return `<img src="${b}.webp" data-t="webp" alt="${mp.name}"
+      return `<img src="${b}.avif" data-t="avif" alt="${mp.name}"
         onerror="(function(el){
-          if(el.dataset.t==='webp'){el.dataset.t='avif';el.src='${b}.avif';}
-          else if(el.dataset.t==='avif'){el.dataset.t='png';el.src='${b}.png';}
-          else if(el.dataset.t==='png'){el.dataset.t='jpg';el.src='${b}.jpg';}
+          var base=el.src.replace(/\\.[a-z0-9]+$/i,'');
+          if(el.dataset.t==='avif'){el.dataset.t='webp';el.src=base+'.webp';}
+          else if(el.dataset.t==='webp'){el.dataset.t='png';el.src=base+'.png';}
+          else if(el.dataset.t==='png'){el.dataset.t='jpg';el.src=base+'.jpg';}
           else{
             el.style.display='none';
             var sl=el.closest('.mgslide');
@@ -4036,14 +4044,20 @@ function initCatDrop(){
 </button>
 
 <script>
-// Global image fallback: avif -> png -> jpg -> hide
+// Global image fallback: avif -> webp -> png -> jpg -> hide
 document.addEventListener('error', function(e){
   var el = e.target;
   if(el.tagName !== 'IMG') return;
+  // Only handle static img/ folder — not data: URLs or uploaded images
   var src = el.src || '';
-  if(src.indexOf('/img/') === -1 && !src.match(/[\/]img[\/]/)) return;
+  if(!src.match(/[\/]img[\/]/) && src.indexOf('/img/') === -1) return;
+  if(src.startsWith('data:')) return;
+  // If the element has data-t, it has its own inline onerror — don't double-handle
+  if(el.dataset && el.dataset.t) return;
   var base = src.replace(/\.[a-z0-9]+$/i, '');
   if(src.match(/\.avif$/i)){
+    el.src = base + '.webp';
+  } else if(src.match(/\.webp$/i)){
     el.src = base + '.png';
   } else if(src.match(/\.png$/i)){
     el.src = base + '.jpg';
