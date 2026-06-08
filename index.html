@@ -2778,6 +2778,91 @@ function renderWishDrawer(){
   }).join('');
 }
 
+
+/* Fix: reattach modal zoom after size/variant changes */
+function DZ_attachModalZoom(){
+  const mimg = document.getElementById('mimg');
+  if(!mimg) return;
+  const mimgMain = mimg.querySelector('.mimg-main') || mimg;
+
+  // Remove previous listeners from the old image container before attaching to the new one
+  if(mimg._zoomTarget && mimg._zoomHandler) mimg._zoomTarget.removeEventListener('mousemove', mimg._zoomHandler);
+  if(mimg._zoomTarget && mimg._zoomLeave)   mimg._zoomTarget.removeEventListener('mouseleave', mimg._zoomLeave);
+  mimg._zoomTarget = mimgMain;
+
+  // Use body-level fixed elements so modal overflow never clips the zoom preview
+  let lens = document.getElementById('gz-lens');
+  let result = document.getElementById('gz-result');
+  if(!lens){
+    lens = document.createElement('div');
+    lens.id = 'gz-lens';
+    lens.style.cssText = 'position:fixed;width:90px;height:90px;border:2px solid #224C44;border-radius:4px;background:rgba(34,76,68,.07);pointer-events:none;display:none;z-index:9999;box-sizing:border-box;';
+    document.body.appendChild(lens);
+  }
+  if(!result){
+    result = document.createElement('div');
+    result.id = 'gz-result';
+    result.style.cssText = 'position:fixed;width:340px;height:420px;border:1px solid #ddd;border-radius:8px;background:#f7f5f2;background-repeat:no-repeat;box-shadow:0 8px 40px rgba(0,0,0,.2);pointer-events:none;display:none;z-index:9998;overflow:hidden;';
+    document.body.appendChild(result);
+  }
+
+  function getActiveImg(){
+    const activeSlide = mimgMain.querySelector('.mgslide.active') || mimgMain.querySelector('.mgslide[style*="flex"]');
+    if(activeSlide) return activeSlide.querySelector('img:not([style*="display: none"])') || activeSlide.querySelector('img');
+    return mimgMain.querySelector('img:not([style*="display: none"])') || mimgMain.querySelector('img');
+  }
+
+  mimg._zoomHandler = function(e){
+    const img = getActiveImg();
+    if(!img || !img.complete || !img.naturalWidth) return;
+
+    const imgRect = img.getBoundingClientRect();
+    const mx = e.clientX - imgRect.left;
+    const my = e.clientY - imgRect.top;
+
+    if(mx < 0 || my < 0 || mx > imgRect.width || my > imgRect.height){
+      lens.style.display = 'none';
+      result.style.display = 'none';
+      return;
+    }
+
+    const lensW = 90, lensH = 90;
+    const ZOOM  = 3;
+    const lensX = Math.max(imgRect.left, Math.min(e.clientX - lensW/2, imgRect.right  - lensW));
+    const lensY = Math.max(imgRect.top,  Math.min(e.clientY - lensH/2, imgRect.bottom - lensH));
+    lens.style.left = lensX + 'px';
+    lens.style.top = lensY + 'px';
+    lens.style.display = 'block';
+
+    const mainRect = mimgMain.getBoundingClientRect();
+    const rW = 340, rH = Math.min(420, mainRect.height || 420);
+    let rX = mainRect.right + 10;
+    if(rX + rW > window.innerWidth - 12) rX = Math.max(12, mainRect.left - rW - 10);
+    const rY = Math.max(12, Math.min(mainRect.top, window.innerHeight - rH - 12));
+    result.style.left = rX + 'px';
+    result.style.top = rY + 'px';
+    result.style.width = rW + 'px';
+    result.style.height = rH + 'px';
+    result.style.display = 'block';
+
+    const bgW = imgRect.width * ZOOM;
+    const bgH = imgRect.height * ZOOM;
+    const ratioX = mx / imgRect.width;
+    const ratioY = my / imgRect.height;
+    result.style.backgroundImage = `url("${img.currentSrc || img.src}")`;
+    result.style.backgroundSize = `${bgW}px ${bgH}px`;
+    result.style.backgroundPosition = `${-(ratioX * bgW - rW / 2)}px ${-(ratioY * bgH - rH / 2)}px`;
+  };
+
+  mimg._zoomLeave = function(){
+    lens.style.display = 'none';
+    result.style.display = 'none';
+  };
+
+  mimgMain.addEventListener('mousemove', mimg._zoomHandler);
+  mimgMain.addEventListener('mouseleave', mimg._zoomLeave);
+}
+
 /* ================================================================
    MODAL
 ================================================================ */
@@ -2794,6 +2879,8 @@ function openModal(sku, groupKey){
   window.switchModalVariant = function(newSku){
     _selVariant[gk] = newSku;
     renderModalBody(newSku);
+    // The size change rebuilds the image DOM, so zoom must be attached again.
+    setTimeout(DZ_attachModalZoom, 80);
   };
 
   function renderModalBody(selSku){
@@ -3213,6 +3300,7 @@ function openModal(sku, groupKey){
   }
 
   renderModalBody(sku);
+  setTimeout(DZ_attachModalZoom, 80);
   document.getElementById('mov').classList.add('open');
   document.body.style.overflow='hidden';
 
