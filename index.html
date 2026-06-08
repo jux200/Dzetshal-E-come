@@ -2291,14 +2291,7 @@ function imgTag(sku, name, attrs){
 // Returns true only if an image was explicitly uploaded/baked (not just a fallback path)
 // Return array of up to 3 image slots for a sku [img0, img1, img2] (null if empty)
 function getImgSlots(sku){
-  // First use uploaded images saved in this browser
-  let val = imgStore[sku];
-
-  // Then use images baked into the downloaded HTML for Vercel/public visitors
-  if((!val || (Array.isArray(val) && !val.some(Boolean))) && typeof _BAKED_IMAGES !== "undefined" && _BAKED_IMAGES[sku]){
-    val = _BAKED_IMAGES[sku];
-  }
-
+  const val = imgStore[sku];
   if(!val) return [null, null, null];
   if(Array.isArray(val)) return [val[0]||null, val[1]||null, val[2]||null];
   return [val, null, null]; // legacy single string
@@ -2997,7 +2990,7 @@ function openModal(sku, groupKey){
       "My Way":            { year:2020, story:"My Way celebrates the connections we make when we travel the world with open arms — tuberose, bergamot and sandalwood reflect Armani's vision of responsible luxury.", accords:["Floral","Woody","Musky","Citrus","Vanilla"] },
       // Gucci
       "Gucci Bloom":       { year:2017, story:"Gucci Bloom was born from Alessandro Michele's vision of a garden in full, intense bloom. A rich white floral built on tuberose, rangoon creeper and jasmine.", accords:["White Floral","Floral","Musky","Powdery","Earthy"] },
-      "Gucci Flora":       { year:2009, story:"Originally created as a scarf print for Princess Diana, Flora became a full fragrance collection — fresh, feminine and eternally elegant.", accords:["Floral","Fruity","Citrus","Musky","Peony"] },
+      "Gucci Flora":       { year:2009, story:"Flora draws from Gucci’s famous floral print, originally created in the 1960s for Princess Grace of Monaco. The fragrance line is bright, feminine and floral-fruity.", accords:["Floral","Fruity","Citrus","Musky","Fresh"] },
       "Guilty":            { year:2010, story:"Gucci Guilty was designed for those who live without regrets — a floral oriental that blends pink pepper, lilac and amber into a bold, unapologetic statement.", accords:["Floral","Oriental","Citrus","Musky","Woody"] },
       // Prada
       "Luna Rossa":        { year:2012, story:"Luna Rossa is a wind sport at sea — a fresh, aromatic masculine inspired by the Italian racing yachts and the spirit of ambitious sport.", accords:["Aromatic","Lavender","Citrus","Musky","Fresh Spicy"] },
@@ -3017,7 +3010,7 @@ function openModal(sku, groupKey){
       "212":               { year:1997, story:"212 is the area code of Manhattan — an urban fragrance that bottles the energy and dynamism of New York City, modern, clean and effortlessly cool.", accords:["Floral","Woody","Musky","Citrus","Fresh"] },
       "Very Good Girl":    { year:2021, story:"A juicy, luminous twist on the iconic Good Girl — rose and litchi sparkle over a background of woody musks in an irresistibly fresh feminine.", accords:["Floral","Fruity","Rose","Musky","Woody"] },
       // Mont Blanc
-      "Legend":            { year:2006, story:"Montblanc Legend is a fougère benchmark — a crisp, clean aromatic that embodies the spirit of the modern gentleman with bergamot, lavender and oakmoss.", accords:["Aromatic","Fougère","Woody","Citrus","Musky"] },
+      "Legend":            { year:2011, story:"Montblanc Legend is a crisp aromatic fougère for men, built around lavender, bergamot, pineapple, oakmoss and sandalwood. It represents clean, confident modern masculinity.", accords:["Aromatic","Fougère","Fresh Spicy","Fruity","Woody"] },
       "Explorer":          { year:2019, story:"Montblanc Explorer follows the trail of the adventurous spirit — ambroxan and vetiver build a woody, resinous base that grounds bergamot and clary sage.", accords:["Woody","Aromatic","Citrus","Musky","Resinous"] },
       // Paco Rabanne
       "1 Million":         { year:2008, story:"One of the world's best-selling men's fragrances, housed in a gold bar bottle — 1 Million opens with grapefruit and blood mandarin, then gives way to rose leather.", accords:["Woody","Leather","Citrus","Spicy","Amber"] },
@@ -3045,9 +3038,16 @@ function openModal(sku, groupKey){
       // Chloe
       "Chloé Signature":   { year:2008, story:"Chloé Signature is an elegant, feminine rose in its purest form — magnolia and peony frame the radiant rose heart, grounded by cedarwood in a timeless round bottle.", accords:["Rose","Floral","Musky","Powdery","Woody"] },
       "Chloé Nomade":      { year:2018, story:"Nomade captures the spirit of the free-spirited traveller — white mirabelle plum, freesia and oak moss create a fresh, sensual and quintessentially Chloé signature.", accords:[["Floral",95],["Fruity",80],["Chypre",70],["Musky",60],["Woody",50]] },
+
+      "Gucci Gorgeous Gardenia": { year:2021, story:"Flora Gorgeous Gardenia is a joyful floral fragrance built around gardenia, jasmine, pear blossom, red berries and a soft brown-sugar patchouli base.", accords:[["Floral",95],["White Floral",86],["Fruity",78],["Sweet",65],["Patchouli",48]] },
+      "Gorgeous Gardenia": { year:2021, story:"Flora Gorgeous Gardenia is a joyful floral fragrance built around gardenia, jasmine, pear blossom, red berries and a soft brown-sugar patchouli base.", accords:[["Floral",95],["White Floral",86],["Fruity",78],["Sweet",65],["Patchouli",48]] },
+      "Burberry Goddess": { year:2023, story:"Burberry Goddess is an aromatic gourmand centered on a trio of vanillas, lifted by lavender, cacao and ginger. It is warm, confident and creamy.", accords:[["Vanilla",96],["Aromatic",74],["Sweet",70],["Lavender",62],["Warm Spicy",54]] },
+      "Goddess": { year:2023, story:"Burberry Goddess is an aromatic gourmand centered on a trio of vanillas, lifted by lavender, cacao and ginger. It is warm, confident and creamy.", accords:[["Vanilla",96],["Aromatic",74],["Sweet",70],["Lavender",62],["Warm Spicy",54]] },
+      "Chloe Love Story": { year:2014, story:"Chloé Love Story is a romantic floral built around orange blossom, neroli and jasmine, inspired by Parisian love locks and fresh feminine elegance.", accords:[["White Floral",92],["Citrus",70],["Floral",68],["Fresh",58],["Musky",45]] },
+      "Love Story": { year:2014, story:"Chloé Love Story is a romantic floral built around orange blossom, neroli and jasmine, inspired by Parisian love locks and fresh feminine elegance.", accords:[["White Floral",92],["Citrus",70],["Floral",68],["Fresh",58],["Musky",45]] },
       // Calvin Klein
-      "CK One":            { year:1994, story:"CK One revolutionised perfumery in 1994 as the world's first shared unisex fragrance. A clean, fresh tea-citrus accord blended with green notes and soft musks — pure, democratic and endlessly modern.", accords:[["Citrus",95],["Green",80],["Musky",75],["Fresh",65],["Woody",50]] },
-      "Calvin Klein One":  { year:1994, story:"CK One revolutionised perfumery in 1994 as the world's first shared unisex fragrance. A clean, fresh tea-citrus accord blended with green notes and soft musks — pure, democratic and endlessly modern.", accords:[["Citrus",95],["Green",80],["Musky",75],["Fresh",65],["Woody",50]] },
+      "CK One":            { year:1994, story:"CK One helped make unisex fragrance mainstream in 1994. A clean citrus-aromatic scent with green notes, tea-like freshness, soft woods and musk — pure, democratic and endlessly modern.", accords:[["Citrus",95],["Aromatic",82],["Green",78],["Musky",70],["Woody",55]] },
+      "Calvin Klein One":  { year:1994, story:"CK One helped make unisex fragrance mainstream in 1994. A clean citrus-aromatic scent with green notes, tea-like freshness, soft woods and musk — pure, democratic and endlessly modern.", accords:[["Citrus",95],["Aromatic",82],["Green",78],["Musky",70],["Woody",55]] },
       "CK Be":             { year:1996, story:"CK Be is a declaration of individuality — a minimalist blend of lavender, sandalwood and musk that defies gender boundaries and celebrates the freedom to simply be.", accords:[["Musky",90],["Woody",75],["Aromatic",65],["Fresh",60],["Citrus",50]] },
       "Calvin Klein Be":   { year:1996, story:"CK Be is a declaration of individuality — a minimalist blend of lavender, sandalwood and musk that defies gender boundaries and celebrates the freedom to simply be.", accords:[["Musky",90],["Woody",75],["Aromatic",65],["Fresh",60],["Citrus",50]] },
       "Euphoria":          { year:2005, story:"Euphoria is intoxicating and sensual — pomegranate, black violet and dark amber create a hypnotic oriental feminine that captures the tension between innocence and desire.", accords:[["Fruity",90],["Floral",80],["Oriental",70],["Musky",65],["Woody",50]] },
@@ -3062,14 +3062,34 @@ function openModal(sku, groupKey){
     function getFragranceInfo(name, brand){
       // Strip size/type noise from the product name
       function cleanName(n, b){
-        return n.toLowerCase()
-          .replace(b.toLowerCase(),'')
-          .replace(/\s*(edp|edt|parfum|edc|body|deo)\s*/gi,'')
-          .replace(/\d+(\.\d+)?\s*ml/gi,'')
-          .replace(/\s*spray\s*/gi,'')
-          .replace(/\s*intense\s*/gi,'')
-          .replace(/\s*pour\s*(homme|femme)\s*/gi,'')
-          .replace(/[()]/g,'')
+        const decode = (s)=>{
+          const ta = document.createElement('textarea');
+          ta.innerHTML = String(s || '');
+          return ta.value;
+        };
+        let s = decode(n).toLowerCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+          .replace(/[’`´]/g,"'")
+          .replace(/goodgirl/g,'good girl')
+          .replace(/coolwater/g,'cool water')
+          .replace(/jadore/g,"j'adore");
+        const brandsToRemove = [b,'christian dior','dior','chloe','chloé','calvin klein','ck','jean paul gaultier','paco rabanne'];
+        brandsToRemove.forEach(br=>{
+          br = decode(br || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+          if(br) s = s.replace(new RegExp(br.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g'),' ');
+        });
+        return s
+          .replace(/\s*(eau de parfum|eau de toilette|edp|edt|parfum|edc|body|deo)\s*/gi,' ')
+          .replace(/\d+(\.\d+)?\s*ml/gi,' ')
+          .replace(/\s*spray\s*/gi,' ')
+          .replace(/\s*intense\s*/gi,' ')
+          .replace(/\s*refillable\s*/gi,' ')
+          .replace(/\s*refill\s*/gi,' ')
+          .replace(/\s*natural\s*/gi,' ')
+          .replace(/\s*mens?\s*/gi,' ')
+          .replace(/\s*womens?\s*/gi,' ')
+          .replace(/\s*pour\s*(homme|femme)\s*/gi,' ')
+          .replace(/[^a-z0-9 ]/g,' ')
           .replace(/\s+/g,' ')
           .trim();
       }
@@ -3190,8 +3210,6 @@ function openModal(sku, groupKey){
             Add to Cart — ${fmt(mp.price)}
           </button>`;
     }
-    // Re-attach zoom every time the modal image/gallery is rebuilt.
-    setTimeout(setupModalZoom, 80);
   }
 
   renderModalBody(sku);
@@ -3323,102 +3341,6 @@ function closeModal(){
     mimg._zoomTarget  = null;
   }
 }
-
-function setupModalZoom(){
-  const mimg = document.getElementById('mimg');
-  if(!mimg) return;
-  const mimgMain = mimg.querySelector('.mimg-main') || mimg;
-
-  // Remove old listeners before attaching again. This fixes zoom after switching variants/images.
-  if(mimg._zoomTarget && mimg._zoomHandler) mimg._zoomTarget.removeEventListener('mousemove', mimg._zoomHandler);
-  if(mimg._zoomTarget && mimg._zoomLeave)   mimg._zoomTarget.removeEventListener('mouseleave', mimg._zoomLeave);
-  mimg._zoomTarget = mimgMain;
-
-  let lens = document.getElementById('gz-lens');
-  let result = document.getElementById('gz-result');
-  if(!lens){
-    lens = document.createElement('div');
-    lens.id = 'gz-lens';
-    lens.style.cssText = 'position:fixed;width:90px;height:90px;border:2px solid #224C44;border-radius:4px;background:rgba(34,76,68,.07);pointer-events:none;display:none;z-index:9999;box-sizing:border-box;';
-    document.body.appendChild(lens);
-  }
-  if(!result){
-    result = document.createElement('div');
-    result.id = 'gz-result';
-    result.style.cssText = 'position:fixed;width:340px;height:420px;border:1px solid #ddd;border-radius:8px;background:#f7f5f2;background-repeat:no-repeat;box-shadow:0 8px 40px rgba(0,0,0,.2);pointer-events:none;display:none;z-index:9998;overflow:hidden;';
-    document.body.appendChild(result);
-  }
-
-  function getActiveImg(){
-    const activeSlide = mimgMain.querySelector('.mgslide.active') || mimgMain.querySelector('.mgslide[style*="flex"]');
-    if(activeSlide) return activeSlide.querySelector('img');
-    return mimgMain.querySelector('img');
-  }
-
-  mimg._zoomHandler = function(e){
-    const img = getActiveImg();
-    if(!img || !img.complete || !img.naturalWidth || img.style.display === 'none'){
-      lens.style.display = 'none';
-      result.style.display = 'none';
-      return;
-    }
-
-    const imgRect = img.getBoundingClientRect();
-    const mx = e.clientX - imgRect.left;
-    const my = e.clientY - imgRect.top;
-
-    if(mx < 0 || my < 0 || mx > imgRect.width || my > imgRect.height){
-      lens.style.display = 'none';
-      result.style.display = 'none';
-      return;
-    }
-
-    const lensW = 90, lensH = 90, ZOOM = 3;
-    const lensX = Math.max(imgRect.left, Math.min(e.clientX - lensW/2, imgRect.right  - lensW));
-    const lensY = Math.max(imgRect.top,  Math.min(e.clientY - lensH/2, imgRect.bottom - lensH));
-    lens.style.left = lensX + 'px';
-    lens.style.top = lensY + 'px';
-    lens.style.display = 'block';
-
-    const mainRect = mimgMain.getBoundingClientRect();
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    let rW = Math.min(340, vw - 24);
-    let rH = Math.min(420, mainRect.height, vh - 24);
-    let rX = mainRect.right + 10;
-    let rY = Math.max(12, Math.min(mainRect.top, vh - rH - 12));
-
-    // If there is no room on the right, show the zoom panel on the left. If still tight, center it.
-    if(rX + rW > vw - 12) rX = mainRect.left - rW - 10;
-    if(rX < 12) rX = Math.max(12, (vw - rW) / 2);
-
-    result.style.left = rX + 'px';
-    result.style.top = rY + 'px';
-    result.style.width = rW + 'px';
-    result.style.height = rH + 'px';
-    result.style.display = 'block';
-
-    const bgW = imgRect.width * ZOOM;
-    const bgH = imgRect.height * ZOOM;
-    const ratioX = mx / imgRect.width;
-    const ratioY = my / imgRect.height;
-    const bgX = -(ratioX * bgW - rW / 2);
-    const bgY = -(ratioY * bgH - rH / 2);
-
-    result.style.backgroundImage = `url("${img.currentSrc || img.src}")`;
-    result.style.backgroundSize = `${bgW}px ${bgH}px`;
-    result.style.backgroundPosition = `${bgX}px ${bgY}px`;
-  };
-
-  mimg._zoomLeave = function(){
-    lens.style.display = 'none';
-    result.style.display = 'none';
-  };
-
-  mimgMain.addEventListener('mousemove', mimg._zoomHandler);
-  mimgMain.addEventListener('mouseleave', mimg._zoomLeave);
-}
-
 
 /* ================================================================
    CONTACT FORM
@@ -3674,37 +3596,21 @@ async function clearImgSlot(sku, slot){
 
 /* ── DOWNLOAD FOR VERCEL ─────────────────────────────── */
 async function downloadVercelHTML(){
-  // Bake all currently uploaded images directly into the HTML so they appear on Vercel.
-  // localStorage only works on your own browser, so public visitors cannot see those images unless they are embedded here.
-  ['adm-panel','adm-ov','login-ov','mob-menu','mob-ov','mov'].forEach(id=>{
+  // Since images are served from the img/ folder on Vercel,
+  // we just need to download the current HTML as-is.
+  // Close panels so they don't appear open in the downloaded file.
+  ['adm-panel','adm-ov','login-ov','mob-menu','mob-ov'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.classList.remove('open');
   });
-
   await new Promise(r=>setTimeout(r,60));
-
-  const clone = document.documentElement.cloneNode(true);
-
-  // Remove any older baked image script, then add the current image store.
-  const oldBake = clone.querySelector('#baked-product-images');
-  if(oldBake) oldBake.remove();
-
-  const bake = document.createElement('script');
-  bake.id = 'baked-product-images';
-  bake.textContent = 'window._BAKED_IMAGES = ' + JSON.stringify(imgStore || {}) + ';';
-  clone.querySelector('head').appendChild(bake);
-
-  const html = '<!DOCTYPE html>\n' + clone.outerHTML;
-  const blob = new Blob([html], {type:'text/html'});
+  const blob = new Blob(['<!DOCTYPE html>\n' + document.documentElement.outerHTML], {type:'text/html'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'index.html';
   a.click();
   URL.revokeObjectURL(a.href);
-
-  const tip = document.getElementById('vercel-tip');
-  if(tip) tip.style.display='block';
-  toast('✓ Downloaded with images baked in. Upload this index.html to Vercel.');
+  toast('✓ Downloaded! Push index.html + your img/ folder to Vercel.');
 }
 
 async function clearAllImages(){
