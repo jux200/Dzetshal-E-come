@@ -2444,40 +2444,92 @@ function applyFilter(){
    so one card shows all sizes. e.g. "Chanel Bleu EDP 50ml" and
    "Chanel Bleu EDP 100ml" → one card with size pills.
 ──────────────────────────────────────────────────────────── */
-function getBaseName(p){
-  // Strip trailing size patterns: "50ML", "100 ML", "50ml", "1.2ml" etc.
-  // Also strip set/gift descriptors at end: "+ Deo Stick 75G + ..." etc
-  let n = p.name;
-  // Remove brand prefix for cleaner base name
-  if(n.toLowerCase().startsWith(p.brand.toLowerCase())){
-    n = n.slice(p.brand.length).trim();
+
+function dzDecodeText(s){
+  return String(s||'')
+    .replace(/&amp;/g,'&')
+    .replace(/&#39;|&apos;/g,"'")
+    .replace(/&quot;/g,'"')
+    .replace(/&nbsp;/g,' ');
+}
+function dzAttr(s){
+  return String(s==null?'':s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+function dzJsCallArg(s){ return dzAttr(JSON.stringify(String(s==null?'':s))); }
+function dzSafeId(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'_'); }
+function dzSizeMl(p){
+  const source = (p.size || p.name || '').toString();
+  const m = source.match(/(\d+(?:\.\d+)?)\s*ml/i);
+  return m ? parseFloat(m[1]) : -1;
+}
+function dzVariantRank(p){
+  const ml = dzSizeMl(p);
+  if(ml < 0) return 99999;
+  // Bigger bottles first on the homepage. 100ml will show before 50ml / 35ml.
+  return -ml;
+}
+function dzCleanDisplayName(p){
+  let displayName = dzDecodeText(p.name);
+  const brand = dzDecodeText(p.brand);
+  if(displayName.toLowerCase().startsWith(brand.toLowerCase())){
+    displayName = displayName.slice(brand.length).trim();
   }
-  // Remove size from end: e.g. "EDP 100ML", "EDT 50 ML", "Parfum 100ml"
-  // Also remove trailing gift-set extras: " + Body Lotion..." etc
+  displayName = displayName
+    .replace(/\s+\+\s+.*/i,'')
+    .replace(/\s*\([^)]+\)\s*$/, '')
+    .replace(/\s*(EDP|EDT|Parfum|EDC|Deo|Body)\s+\d+(\.\d+)?\s*(ml|ML)$/i,'')
+    .replace(/\s+\d+(\.\d+)?\s*(ml|ML)$/i,'')
+    .trim();
+  return displayName || dzDecodeText(p.name);
+}
+function dzCardImageHtml(p, safeKey){
+  return imgTag(p.sku, dzAttr(dzDecodeText(p.name)), 'id="cimg-'+safeKey+'" loading="lazy"');
+}
+
+function getBaseName(p){
+  // Normalize HTML entities first so names like D&#39;Eau / D'Eau do not break grouping or onclick.
+  function dzDecode(s){
+    return String(s||'')
+      .replace(/&amp;/g,'&')
+      .replace(/&#39;|&apos;/g,"'")
+      .replace(/&quot;/g,'"')
+      .replace(/&nbsp;/g,' ');
+  }
+  let n = dzDecode(p.name);
+  const b = dzDecode(p.brand);
+  if(n.toLowerCase().startsWith(b.toLowerCase())){
+    n = n.slice(b.length).trim();
+  }
   n = n
-    .replace(/\s+\+\s+.*/i, '')           // strip " + extras"
-    .replace(/\s*\(\s*[^)]+\)\s*$/, '')   // strip trailing (SKU codes)
-    .replace(/\s*(EDP|EDT|Parfum|EDC|Deo|Body)\s+\d+\s*(ml|ML|g|G|gm|GM|Gm)(\s+\(\d+Y\d+\))?$/i, '') // type+size at end
-    .replace(/\s+\d+(\.\d+)?\s*(ml|ML|g|G)$/i, '')  // bare size at end
+    .replace(/\s+\+\s+.*/i, '')
+    .replace(/\s*\(\s*[^)]+\)\s*$/, '')
+    .replace(/\s*(EDP|EDT|Parfum|EDC|Deo|Body)\s+\d+(\.\d+)?\s*(ml|ML|g|G|gm|GM|Gm)(\s+\(\d+Y\d+\))?$/i, '')
+    .replace(/\s+\d+(\.\d+)?\s*(ml|ML|g|G)$/i, '')
     .replace(/\s+spray$/i, '')
     .replace(/\s+[-–]\s*new$/i, '')
     .trim();
-  return (p.brand + '||' + (n||p.name)).toLowerCase();
+  return (b + '||' + (n || dzDecode(p.name))).toLowerCase();
 }
 
 // State to track selected variant per group
 const _selVariant = {}; // groupKey → sku
 
 function buildGroups(filtered){
-  const map = new Map(); // groupKey → [products]
+  const map = new Map();
   filtered.forEach(p=>{
     const k = getBaseName(p);
     if(!map.has(k)) map.set(k,[]);
     map.get(k).push(p);
   });
-  // Convert to array of groups; each group has a "representative" (featured, or first)
   return Array.from(map.values()).map(variants=>{
-    const rep = variants.find(v=>v.featured) || variants[0];
+    variants = variants.slice().sort((a,b)=>dzVariantRank(a)-dzVariantRank(b) || a.name.localeCompare(b.name));
+    // Default representative is the largest ml size, with 100ml naturally before 50ml and 35ml.
+    const rep = variants.find(v=>isInStock(v.sku)) || variants[0];
     return {rep, variants};
   });
 }
@@ -2515,70 +2567,58 @@ function renderGrid(){
   const groups = buildGroups(all);
   const start = (filter.page-1)*PER;
   const pageGroups = groups.slice(start, start+PER);
-  document.getElementById('rcount').textContent = all.length+' fragrance'+(all.length!==1?'s':``) + ' · ' + groups.length + ' product'+(groups.length!==1?'s':'');
+  document.getElementById('rcount').textContent = all.length+' fragrance'+(all.length!==1?'s':'') + ' · ' + groups.length + ' product'+(groups.length!==1?'s':'');
 
   document.getElementById('pgrid').innerHTML = pageGroups.map(({rep, variants})=>{
     const groupKey = getBaseName(rep);
-    // Use selected variant if any, else representative
+    const orderedVariants = variants.slice().sort((a,b)=>dzVariantRank(a)-dzVariantRank(b) || a.name.localeCompare(b.name));
     const selSku = _selVariant[groupKey] || rep.sku;
-    const p = variants.find(v=>v.sku===selSku) || rep;
-    const img = getImg(p.sku);
+    const p = orderedVariants.find(v=>v.sku===selSku) || rep;
     const oos = !isInStock(p.sku);
     const inCart = cart.some(c=>c.sku===p.sku);
-    const inWish = wishlist.some(s=>variants.some(v=>v.sku===s));
+    const inWish = wishlist.some(s=>orderedVariants.some(v=>v.sku===s));
     const stkInfo = getStkInfo(p.sku);
-    const hasVariants = variants.length > 1;
+    const hasVariants = orderedVariants.length > 1;
+    const safeKey = dzSafeId(groupKey);
 
-    // Build size/type pills for multi-variant groups
-    const varPills = hasVariants ? variants.map(v=>{
+    const varPills = hasVariants ? orderedVariants.map(v=>{
       const vOos = !isInStock(v.sku);
       const isSel = v.sku === p.sku;
-      // Show size if available, else type
-      const label = v.size || v.type;
-      return `<button class="vpill${isSel?' on':''}${vOos?' voos':''}" 
-        onclick="event.stopPropagation();selectVariant('${groupKey}','${v.sku}')"
-        title="${v.name}">${label}</button>`;
+      const label = v.size || v.type || 'Option';
+      return `<button class="vpill${isSel?' on':''}${vOos?' voos':''}"
+        onclick='event.stopPropagation();selectVariant(${dzJsCallArg(groupKey)},${dzJsCallArg(v.sku)})'
+        title="${dzAttr(dzDecodeText(v.name))}">${dzAttr(label)}</button>`;
     }).join('') : '';
 
-    // Clean display name: strip brand prefix and size from card title
-    let displayName = p.name;
-    if(displayName.toLowerCase().startsWith(p.brand.toLowerCase())){
-      displayName = displayName.slice(p.brand.length).trim();
-    }
-    // Strip trailing size+type suffix for cleaner card title
-    displayName = displayName
-      .replace(/\s+\+\s+.*/i,'')
-      .replace(/\s*\([^)]+\)\s*$/, '')
-      .replace(/\s*(EDP|EDT|Parfum|EDC|Deo|Body)\s+\d+\s*(ml|ML)$/i,'')
-      .replace(/\s+\d+(\.\d+)?\s*(ml|ML)$/i,'')
-      .trim() || p.name;
+    const displayName = dzCleanDisplayName(p);
+    const openCall = `openModal(${dzJsCallArg(p.sku)},${dzJsCallArg(groupKey)})`;
 
     return `
-    <article class="pcard${oos?' oos':''}" onclick="openModal('${p.sku.replace(/'/g,"\\'")}','${groupKey.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">
+    <article class="pcard${oos?' oos':''}" data-gkey="${dzAttr(groupKey)}" data-safe="${safeKey}" onclick='${openCall}'>
       <div class="cimg">
-        ${imgTag(p.sku, p.name, 'id="cimg-'+groupKey.replace(/[^a-z0-9]/g,'_')+'" loading="lazy"')}
+        ${dzCardImageHtml(p, safeKey)}
         <svg style="display:none;opacity:.18" width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="20" y="8" width="24" height="4" rx="2" fill="#224C44"/><rect x="8" y="14" width="48" height="42" rx="4" fill="#224C44"/><rect x="22" y="20" width="20" height="3" rx="1.5" fill="white"/></svg>
         ${oos?'<span class="oos-badge">Out of Stock</span>':''}
         ${p.featured?'<span class="bdg feat" style="position:absolute;bottom:10px;left:10px">Featured</span>':''}
-        ${hasVariants?`<span style="position:absolute;top:10px;left:10px;background:var(--g);color:#fff;font-size:8px;font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:10px">${variants.length} sizes</span>`:''}
-        <button class="wbtn${inWish?' on':''}" onclick="event.stopPropagation();toggleWish('${p.sku}')" title="Wishlist">${inWish?'♥':'♡'}</button>
+        ${hasVariants?`<span class="size-count-badge" style="position:absolute;top:10px;left:10px;background:var(--g);color:#fff;font-size:8px;font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:10px">${orderedVariants.length} sizes</span>`:''}
+        <button class="wbtn${inWish?' on':''}" onclick='event.stopPropagation();toggleWish(${dzJsCallArg(p.sku)})' title="Wishlist">${inWish?'♥':'♡'}</button>
       </div>
       <div class="cbody">
-        <div class="cbrand">${p.brand}</div>
-        <div class="cname">${displayName}</div>
-        ${hasVariants?`<div class="vpills" id="vpills-${groupKey.replace(/[^a-z0-9]/g,'_')}">${varPills}</div>`:`
+        <div class="cbrand">${dzAttr(dzDecodeText(p.brand))}</div>
+        <div class="cname">${dzAttr(displayName)}</div>
+        ${hasVariants?`<div class="vpills" id="vpills-${safeKey}">${varPills}</div>`:`
         <div class="cmeta">
-          <span class="bdg">${p.type}</span>
-          ${p.size?`<span class="bdg">${p.size}`+'</span>':''}
+          <span class="bdg">${dzAttr(p.type)}</span>
+          ${p.size?`<span class="bdg">${dzAttr(p.size)}</span>`:''}
           ${stkInfo.qty<10&&stkInfo.qty>0&&stkInfo.inStock?`<span class="bdg" style="background:#fff3e0;color:#e65100;border-color:#ffe0b2">Only ${stkInfo.qty} left</span>`:''}
         </div>`}
         <div class="cfoot">
-          <div class="cprice" id="cprice-${groupKey.replace(/[^a-z0-9]/g,'_')}">${fmt(p.price)}<sub>incl. VAT</sub></div>
+          <div class="cprice" id="cprice-${safeKey}">${fmt(p.price)}<sub>incl. VAT</sub></div>
           ${oos
             ? `<button class="addbtn oos" disabled>Out of Stock</button>`
-            : `<button class="addbtn${inCart?' added':''}" id="caddbtn-${p.sku}" onclick="event.stopPropagation();${hasVariants?`openModal('${p.sku.replace(/'/g,"\\'")}','${groupKey.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;')}')`:`addToCart('${p.sku}')`}">
+            : `<button class="addbtn${inCart?' added':''}" id="caddbtn-${dzAttr(p.sku)}" onclick='event.stopPropagation();${hasVariants?openCall:`addToCart(${dzJsCallArg(p.sku)})`}'>
                 <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-                ${hasVariants?'Select':''}${!hasVariants&&inCart?'Added':''}${!hasVariants&&!inCart?'Add to Cart':''}
+                ${hasVariants?'Select':(!hasVariants&&inCart?'Added':'Add to Cart')}
               </button>`
           }
         </div>
@@ -2590,36 +2630,57 @@ function renderGrid(){
 }
 
 function selectVariant(groupKey, sku){
+  groupKey = dzDecodeText(groupKey);
   _selVariant[groupKey] = sku;
   const p = RAW.find(x=>x.sku===sku); if(!p) return;
-  const safeKey = groupKey.replace(/[^a-z0-9]/g,'_');
-  // Update price
+  const safeKey = dzSafeId(groupKey);
+  const card = document.querySelector('.pcard[data-safe="'+safeKey+'"]');
+
   const priceEl = document.getElementById('cprice-'+safeKey);
   if(priceEl) priceEl.innerHTML = fmt(p.price)+'<sub>incl. VAT</sub>';
-  // Update image
+
+  // Important fix: rebuild the img tag instead of setting src=getImg(sku).
+  // getImg(sku) is null for normal static files, which was making the image disappear
+  // until the product modal was opened.
   const imgEl = document.getElementById('cimg-'+safeKey);
-  if(imgEl){ imgEl.src = getImg(sku); imgEl.style.display=''; }
-  // Update pills
+  if(imgEl){
+    imgEl.outerHTML = dzCardImageHtml(p, safeKey);
+  }
+
+  const group = buildGroups(applyFilter()).find(g=>getBaseName(g.rep)===groupKey) ||
+                {variants: RAW.filter(r=>getBaseName(r)===groupKey)};
+  const orderedVariants = (group.variants||[]).slice().sort((a,b)=>dzVariantRank(a)-dzVariantRank(b) || a.name.localeCompare(b.name));
   const pillsEl = document.getElementById('vpills-'+safeKey);
   if(pillsEl){
-    pillsEl.querySelectorAll('.vpill').forEach(btn=>{
-      btn.classList.toggle('on', btn.title === p.name || btn.onclick?.toString().includes(`'${sku}'`));
-    });
-    // Re-render pills properly
-    const group = buildGroups(applyFilter()).find(g=>getBaseName(g.rep)===groupKey);
-    if(group){
-      pillsEl.innerHTML = group.variants.map(v=>{
-        const vOos=!isInStock(v.sku);
-        const isSel=v.sku===sku;
-        const label=v.size||v.type;
-        return `<button class="vpill${isSel?' on':''}${vOos?' voos':''}" onclick="event.stopPropagation();selectVariant('${groupKey}','${v.sku}')" title="${v.name}">${label}</button>`;
-      }).join('');
+    pillsEl.innerHTML = orderedVariants.map(v=>{
+      const vOos=!isInStock(v.sku);
+      const isSel=v.sku===sku;
+      const label=v.size||v.type||'Option';
+      return `<button class="vpill${isSel?' on':''}${vOos?' voos':''}" onclick='event.stopPropagation();selectVariant(${dzJsCallArg(groupKey)},${dzJsCallArg(v.sku)})' title="${dzAttr(dzDecodeText(v.name))}">${dzAttr(label)}</button>`;
+    }).join('');
+  }
+
+  const oos = !isInStock(sku);
+  if(card){
+    card.classList.toggle('oos',oos);
+    card.setAttribute('onclick', `openModal(${JSON.stringify(sku)},${JSON.stringify(groupKey)})`);
+    const addBtn = card.querySelector('.addbtn');
+    if(addBtn){
+      if(oos){
+        addBtn.outerHTML = '<button class="addbtn oos" disabled>Out of Stock</button>';
+      }else{
+        addBtn.classList.remove('oos');
+        addBtn.disabled = false;
+        addBtn.onclick = function(ev){ ev.stopPropagation(); openModal(sku, groupKey); };
+      }
+    }
+    const oldBadge = card.querySelector('.oos-badge');
+    if(oldBadge) oldBadge.remove();
+    if(oos){
+      const cimg = card.querySelector('.cimg');
+      if(cimg) cimg.insertAdjacentHTML('beforeend','<span class="oos-badge">Out of Stock</span>');
     }
   }
-  // Update OOS badge on card
-  const oos = !isInStock(sku);
-  const card = priceEl?.closest('.pcard');
-  if(card){ card.classList.toggle('oos',oos); }
 }
 
 function renderPag(total){
@@ -2958,6 +3019,7 @@ function openModal(sku, groupKey){
         var lens=document.getElementById('gz-lens'), res=document.getElementById('gz-result');
         if(lens) lens.style.display='none';
         if(res)  res.style.display='none';
+        setTimeout(DZ_attachModalZoom, 30);
       };
     })(galleryId);
 
