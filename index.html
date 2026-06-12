@@ -4276,5 +4276,69 @@ document.addEventListener('error', function(e){
 }, true);
 </script>
 
+
+
+<!-- Final mobile hero/banner fix -->
+<style>
+/* Fix mobile hero banner: the banner image already contains its own text,
+   so the extra overlay title/buttons are hidden on phones. The banner is
+   shown in its real wide aspect ratio, with MEN/WOMEN kept in a clean row below. */
+@media (max-width:600px){
+  .hero{
+    min-height:0 !important;
+    height:calc((100vw * 559 / 2048) + 54px) !important;
+    display:block !important;
+    background:#050505 !important;
+    overflow:hidden !important;
+  }
+  #hero-slides{
+    position:absolute !important;
+    top:0 !important;
+    left:0 !important;
+    right:0 !important;
+    bottom:auto !important;
+    height:calc(100vw * 559 / 2048) !important;
+  }
+  .hs-slide{
+    position:absolute !important;
+    inset:0 !important;
+    background:#050505 !important;
+  }
+  .hero-slide-img{
+    position:absolute !important;
+    inset:0 !important;
+    width:100% !important;
+    height:100% !important;
+    object-fit:contain !important;
+    object-position:center center !important;
+    opacity:1 !important;
+    background:#050505 !important;
+  }
+  .hero-ov,
+  .hero-cnt,
+  .hs-arrow{
+    display:none !important;
+  }
+  .hs-dots{
+    bottom:38px !important;
+    z-index:5 !important;
+  }
+  .hero-corners{
+    position:absolute !important;
+    left:0 !important;
+    right:0 !important;
+    bottom:12px !important;
+    padding:0 14px !important;
+    z-index:5 !important;
+  }
+}
+
+@media (max-width:420px){
+  .hero{height:calc((100vw * 559 / 2048) + 52px) !important;}
+  #hero-slides{height:calc(100vw * 559 / 2048) !important;}
+  .hs-dots{bottom:36px !important;}
+}
+</style>
+
 </body>
 </html>
