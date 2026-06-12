@@ -260,6 +260,9 @@ ul{list-style:none}
 .cicon{font-size:26px;color:var(--pd);margin-bottom:10px}
 .cinfo-cell h3{font-size:12px;font-weight:700;margin-bottom:8px}
 .cinfo-cell p{font-size:12px;line-height:1.65;color:var(--tm);font-weight:300}
+.cinfo-cell.loc-card{cursor:pointer;transition:transform .2s,box-shadow .2s,border-color .2s;background:#fff}
+.cinfo-cell.loc-card:hover,.cinfo-cell.loc-card:focus{transform:translateY(-3px);box-shadow:0 8px 24px rgba(34,76,68,.12);outline:none}
+.tap-dir{display:inline-block;margin-top:10px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--g);border-bottom:1px solid var(--p);padding-bottom:2px}
 .cbody2{display:grid;grid-template-columns:1fr 1fr;gap:48px;max-width:1100px;margin:0 auto}
 .cimg-col{border-radius:12px;overflow:hidden}
 .cimg-col img{width:100%;height:100%;object-fit:cover;min-height:380px}
@@ -407,8 +410,9 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:2
 .wa-lbl{white-space:nowrap}
 
 /* ── TOAST ───────────────────────────────────────────── */
-#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--g);color:#fff;padding:11px 24px;border-radius:4px;font-size:13px;z-index:600;transition:transform .25s ease;white-space:nowrap;box-shadow:var(--sh);pointer-events:none}
-#toast.show{transform:translateX(-50%) translateY(0)}
+#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--g);color:#fff;padding:11px 24px;border-radius:4px;font-size:13px;z-index:600;transition:transform .25s ease,opacity .25s ease;white-space:nowrap;box-shadow:var(--sh);pointer-events:none;opacity:0;max-width:92vw;text-align:center}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+@media(max-width:600px){#toast{bottom:116px;font-size:12px;padding:10px 16px}}
 
 /* ── ADMIN PANEL ─────────────────────────────────────── */
 /* Floating admin button */
@@ -1121,25 +1125,38 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:2
 @media(max-width:768px){.hs-arrow{width:38px;height:48px;font-size:28px}.hs-dots{bottom:68px}}
 @media(max-width:600px){.hs-arrow{display:none}.hs-dots{bottom:58px}}
 
-/* Mobile banner fix: show the full wide banner instead of cropping it */
+/* Mobile banner fix: make the banner fit better and reduce the black background */
 @media(max-width:600px){
-  .hero{min-height:260px;background:#050505;align-items:center;}
-  .hero-slide-img{object-fit:contain !important;object-position:center center !important;background:#050505;}
-  .hero-ov{background:linear-gradient(180deg,rgba(0,0,0,.10) 0%,rgba(0,0,0,.20) 100%) !important;}
-  .hero-cnt{padding:22px 14px 70px;max-width:70%;}
-  .hero-tag{font-size:8px;padding:4px 10px;margin-bottom:8px;}
-  .hero h1{font-size:clamp(20px,7vw,30px);line-height:1.05;margin-bottom:8px;}
-  .hero-sub{font-size:9px;letter-spacing:.08em;margin-bottom:14px;}
-  .hero-ctas{gap:7px;}
-  .hero-ctas .btn{padding:9px 12px;font-size:9px;width:auto;}
-  .hero-corners{padding:0 14px 12px;}
+  .hero{
+    min-height:215px !important;
+    height:215px !important;
+    background:#050505;
+    align-items:flex-start;
+  }
+  #hero-slides{height:150px !important;bottom:auto !important;}
+  .hs-slide{
+    background-size:contain !important;
+    background-repeat:no-repeat !important;
+    background-position:top center !important;
+  }
+  .hero-slide-img{
+    object-fit:contain !important;
+    object-position:top center !important;
+    background:#050505;
+  }
+  .hero-ov{display:none !important;}
+  .hero-cnt{display:none !important;}
+  .hero-corners{padding:0 14px 14px !important;bottom:0 !important;}
+  .hs-dots{bottom:58px !important;}
 }
 
 @media(max-width:420px){
-  .hero{min-height:230px;}
-  .hero-cnt{max-width:64%;padding-bottom:58px;}
-  .hero-ctas .btn-ow{display:none;}
-  .hs-dots{bottom:42px;}
+  .hero{
+    min-height:205px !important;
+    height:205px !important;
+  }
+  #hero-slides{height:135px !important;}
+  .hs-dots{bottom:50px !important;}
 }
 
 </style>
@@ -1349,20 +1366,20 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:2
 <section class="contact-sec" id="contact">
   <div class="sec-head"><h2>Contact Us</h2></div>
   <div class="cinfo-row" style="grid-template-columns:repeat(4,1fr)">
-    <div class="cinfo-cell">
+    <div class="cinfo-cell loc-card" role="button" tabindex="0" onclick="showLocation('kigali-kimihurura')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showLocation('kigali-kimihurura')}">
       <div class="cicon">📍</div>
       <h3>Rwanda — Kigali</h3>
-      <p>KN 14 Av, KG 623 St<br>(Same building as BOHO Lounge)<br>Kimihurura</p>
+      <p>KN 14 Av, KG 623 St<br>(Same building as BOHO Lounge)<br>Kimihurura<br><span class="tap-dir">Tap for map</span></p>
     </div>
-    <div class="cinfo-cell">
+    <div class="cinfo-cell loc-card" role="button" tabindex="0" onclick="showLocation('rubavu')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showLocation('rubavu')}">
       <div class="cicon">📍</div>
       <h3>Rwanda — Rubavu</h3>
-      <p>Near Rubavu Bus Park<br>Nyakabungo, Gisenyi<br><a href="tel:+250795302693" style="color:var(--g)">+250 795 302 693</a></p>
+      <p>Near Rubavu Bus Park<br>Nyakabungo, Gisenyi<br><a href="tel:+250795302693" style="color:var(--g)">+250 795 302 693</a><br><span class="tap-dir">Tap for map</span></p>
     </div>
-    <div class="cinfo-cell">
+    <div class="cinfo-cell loc-card" role="button" tabindex="0" onclick="showLocation('gacuriro')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showLocation('gacuriro')}">
       <div class="cicon">📍</div>
       <h3>Kigali, Rwanda</h3>
-      <p>Gacuriro <br>Simba Center<br><a href="tel:+237652505729" style="color:var(--g)"> +250 795 308 453</a></p>
+      <p>Gacuriro <br>Simba Center<br><a href="tel:+250795308453" style="color:var(--g)"> +250 795 308 453</a><br><span class="tap-dir">Tap for map</span></p>
     </div>
     <div class="cinfo-cell">
       <div class="cicon">🕐</div>
@@ -1392,8 +1409,8 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:2
 </section>
 
 <!-- MAP -->
-<div class="map-sec">
-  <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3987.49!2d30.0588!3d-1.9441!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMcKwNTYnMzguNyJTIDMwwrAwMycyMS4xIkU!5e0!3m2!1sen!2srw!4v1700000000000" loading="lazy" allowfullscreen title="Dzetshal location"></iframe>
+<div class="map-sec" id="store-map-section">
+  <iframe id="store-map" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3987.49!2d30.0588!3d-1.9441!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMcKwNTYnMzguNyJTIDMwwrAwMycyMS4xIkU!5e0!3m2!1sen!2srw!4v1700000000000" loading="lazy" allowfullscreen title="Dzetshal location"></iframe>
 </div>
 
 <!-- FOOTER -->
@@ -3588,6 +3605,23 @@ function closeMob(){
   document.getElementById('mob-ov').classList.remove('open');
 }
 
+
+/* ================================================================
+   STORE MAP LOCATION SWITCHER
+================================================================ */
+const STORE_MAPS={
+  'kigali-kimihurura':'https://www.google.com/maps?q=KN+14+Ave+KG+623+St+Kimihurura+Kigali+Rwanda&output=embed',
+  'rubavu':'https://www.google.com/maps?q=Nyakabungo+Gisenyi+Rubavu+Rwanda&output=embed',
+  'gacuriro':'https://www.google.com/maps?q=Gacuriro+Simba+Center+Kigali+Rwanda&output=embed'
+};
+function showLocation(key){
+  const map=document.getElementById('store-map');
+  const section=document.getElementById('store-map-section');
+  if(!map||!section||!STORE_MAPS[key]) return;
+  map.src=STORE_MAPS[key];
+  section.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
 /* ================================================================
    TOAST
 ================================================================ */
@@ -3595,8 +3629,10 @@ let _tt;
 function toast(msg){
   clearTimeout(_tt);
   const el=document.getElementById('toast');
-  el.textContent=msg; el.classList.add('show');
-  _tt=setTimeout(()=>el.classList.remove('show'),3000);
+  if(!el) return;
+  el.textContent=msg;
+  el.classList.add('show');
+  _tt=setTimeout(()=>el.classList.remove('show'),2200);
 }
 
 /* ================================================================
