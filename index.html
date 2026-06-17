@@ -4893,5 +4893,112 @@ document.addEventListener('error', function(e){
 }
 </style>
 
+
+
+<style id="hero-strip-width-based-final-fix">
+/* Real final fix: applies by actual hero width, not browser width, so it works in mobile preview and real phones. */
+.hero.hero-strip-tight-final{
+  min-height:0!important;
+  max-height:none!important;
+  display:block!important;
+  overflow:hidden!important;
+  background:#050505!important;
+  position:relative!important;
+}
+.hero.hero-strip-tight-final #hero-slides{
+  position:absolute!important;
+  top:0!important;
+  left:0!important;
+  right:0!important;
+  bottom:auto!important;
+}
+.hero.hero-strip-tight-final .hero-ov,
+.hero.hero-strip-tight-final .hero-cnt,
+.hero.hero-strip-tight-final .hs-arrow{
+  display:none!important;
+}
+.hero.hero-strip-tight-final .hs-slide{
+  background-size:contain!important;
+  background-repeat:no-repeat!important;
+  background-position:top center!important;
+}
+.hero.hero-strip-tight-final .hero-slide-img{
+  width:100%!important;
+  height:100%!important;
+  object-fit:contain!important;
+  object-position:top center!important;
+  opacity:1!important;
+  background:#050505!important;
+}
+.hero.hero-strip-tight-final .hero-corners{
+  position:absolute!important;
+  left:0!important;
+  right:0!important;
+  bottom:0!important;
+  height:28px!important;
+  padding:2px 24px 0!important;
+  display:flex!important;
+  justify-content:space-between!important;
+  align-items:flex-start!important;
+  background:#050505!important;
+  z-index:50!important;
+}
+.hero.hero-strip-tight-final .hc-lnk{
+  font-size:11px!important;
+  line-height:1!important;
+  margin:0!important;
+  padding:0 0 2px!important;
+  border-bottom-width:2px!important;
+  letter-spacing:.11em!important;
+}
+.hero.hero-strip-tight-final .hs-dots{
+  position:absolute!important;
+  left:50%!important;
+  transform:translateX(-50%)!important;
+  bottom:22px!important;
+  z-index:60!important;
+  gap:6px!important;
+}
+.hero.hero-strip-tight-final .hs-dot{
+  width:7px!important;
+  height:7px!important;
+}
+@media(max-width:480px){
+  .hero.hero-strip-tight-final .hero-corners{height:26px!important;padding:2px 20px 0!important;}
+  .hero.hero-strip-tight-final .hs-dots{bottom:20px!important;}
+}
+</style>
+<script id="hero-strip-width-based-final-fix-js">
+(function(){
+  function tightenHeroStrip(){
+    var hero=document.querySelector('.hero');
+    var slides=document.getElementById('hero-slides');
+    var corners=document.querySelector('.hero-corners');
+    if(!hero||!slides||!corners) return;
+    var w=hero.getBoundingClientRect().width || window.innerWidth;
+    if(w<=760){
+      hero.classList.add('hero-strip-tight-final');
+      var slideH=Math.max(92, Math.round(w*559/2048));
+      var stripH=w<=480?26:28;
+      hero.style.setProperty('height',(slideH+stripH)+'px','important');
+      hero.style.setProperty('min-height',(slideH+stripH)+'px','important');
+      slides.style.setProperty('height',slideH+'px','important');
+      corners.style.setProperty('height',stripH+'px','important');
+    }else{
+      hero.classList.remove('hero-strip-tight-final');
+      hero.style.removeProperty('height');
+      hero.style.removeProperty('min-height');
+      slides.style.removeProperty('height');
+      corners.style.removeProperty('height');
+    }
+  }
+  window.addEventListener('load', tightenHeroStrip);
+  window.addEventListener('resize', tightenHeroStrip);
+  window.addEventListener('orientationchange', function(){setTimeout(tightenHeroStrip, 150);});
+  setTimeout(tightenHeroStrip, 100);
+  setTimeout(tightenHeroStrip, 800);
+})();
+</script>
+
 </body>
 </html>
