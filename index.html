@@ -4570,5 +4570,328 @@ document.addEventListener('error', function(e){
 
 </style>
 
+
+
+<style id="compact-mobile-fixes-2026-06-17">
+/* Compact mobile spacing: reduce banner black area and featured categories height */
+@media (max-width:600px){
+  .hero{
+    min-height:176px!important;
+    height:176px!important;
+    background:#050505!important;
+    overflow:hidden!important;
+  }
+  #hero-slides{
+    height:124px!important;
+    top:0!important;
+    bottom:auto!important;
+  }
+  .hs-slide{
+    background-size:contain!important;
+    background-repeat:no-repeat!important;
+    background-position:top center!important;
+  }
+  .hero-slide-img{
+    object-fit:contain!important;
+    object-position:top center!important;
+    background:#050505!important;
+  }
+  .hero-ov,.hero-cnt{display:none!important;}
+  .hero-corners{
+    bottom:0!important;
+    padding:0 20px 10px!important;
+    height:52px!important;
+    align-items:center!important;
+    background:#050505!important;
+  }
+  .hs-dots{bottom:47px!important;}
+  .hc-lnk{font-size:11px!important;letter-spacing:.12em!important;}
+
+  .cats-sec{padding:30px 12px 20px!important;}
+  .sec-head{margin-bottom:20px!important;}
+  .cats-sec .eyebrow{font-size:10px!important;margin-bottom:8px!important;}
+  .cats-sec .sec-head h2{font-size:25px!important;line-height:1.15!important;}
+  .cats-grid{gap:14px 8px!important;align-items:start!important;}
+  .cat-card{width:30%!important;min-width:0!important;}
+  .cat-img{width:72px!important;height:72px!important;margin-bottom:7px!important;}
+  .cat-nm{font-size:12px!important;line-height:1.18!important;max-width:100%!important;}
+  .cat-card:nth-child(4){width:100%!important;margin-top:4px!important;}
+}
+@media (max-width:420px){
+  .hero{min-height:166px!important;height:166px!important;}
+  #hero-slides{height:116px!important;}
+  .hero-corners{height:50px!important;padding-bottom:9px!important;}
+  .hs-dots{bottom:44px!important;}
+  .cats-sec{padding-top:26px!important;}
+  .cat-img{width:68px!important;height:68px!important;}
+  .cat-nm{font-size:11.5px!important;}
+}
+</style>
+
+
+<style id="mobile-compact-banner-categories-fix">
+/* Final mobile compact fix: reduce black hero strip and featured categories height */
+@media (max-width: 768px){
+  .hero{
+    min-height: 190px !important;
+    height: 190px !important;
+    align-items: flex-start !important;
+    overflow: hidden !important;
+    background: #050505 !important;
+  }
+
+  #hero-slides{
+    height: 148px !important;
+    bottom: auto !important;
+  }
+
+  .hs-slide{
+    background-size: contain !important;
+    background-repeat: no-repeat !important;
+    background-position: top center !important;
+  }
+
+  .hero-ov,
+  .hero-cnt{
+    display: none !important;
+  }
+
+  .hero-corners{
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    height: 42px !important;
+    padding: 0 24px 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    background: #050505 !important;
+  }
+
+  .hc-lnk{
+    font-size: 11px !important;
+    line-height: 1 !important;
+    padding-bottom: 4px !important;
+  }
+
+  .hs-dots{
+    bottom: 45px !important;
+    gap: 7px !important;
+  }
+
+  .hs-dot{
+    width: 7px !important;
+    height: 7px !important;
+  }
+
+  .cats-sec{
+    padding: 22px 12px 24px !important;
+  }
+
+  .cats-sec .sec-head{
+    margin-bottom: 22px !important;
+  }
+
+  .cats-sec .eyebrow{
+    margin-bottom: 8px !important;
+    font-size: 10px !important;
+    letter-spacing: .18em !important;
+  }
+
+  .cats-sec .sec-head h2{
+    font-size: 24px !important;
+    line-height: 1.1 !important;
+  }
+
+  .cats-grid{
+    gap: 20px 18px !important;
+    align-items: flex-start !important;
+  }
+
+  .cat-card{
+    flex: 0 1 30% !important;
+  }
+
+  .cat-img{
+    width: 74px !important;
+    height: 74px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .cat-nm{
+    font-size: 12px !important;
+    line-height: 1.15 !important;
+    max-width: 105px !important;
+  }
+}
+
+@media (max-width: 600px){
+  .hero{
+    min-height: 176px !important;
+    height: 176px !important;
+  }
+
+  #hero-slides{
+    height: 138px !important;
+  }
+
+  .hero-corners{
+    height: 38px !important;
+    padding: 0 22px 7px !important;
+  }
+
+  .hs-dots{
+    bottom: 40px !important;
+  }
+
+  .cats-sec{
+    padding-top: 20px !important;
+    padding-bottom: 22px !important;
+  }
+
+  .cats-sec .sec-head{
+    margin-bottom: 18px !important;
+  }
+
+  .cats-grid{
+    gap: 18px 14px !important;
+  }
+
+  .cat-img{
+    width: 68px !important;
+    height: 68px !important;
+  }
+}
+
+@media (max-width: 420px){
+  .hero{
+    min-height: 166px !important;
+    height: 166px !important;
+  }
+
+  #hero-slides{
+    height: 130px !important;
+  }
+
+  .hero-corners{
+    height: 36px !important;
+    padding: 0 20px 6px !important;
+  }
+
+  .hs-dots{
+    bottom: 38px !important;
+  }
+
+  .cats-sec{
+    padding: 18px 10px 20px !important;
+  }
+
+  .cat-img{
+    width: 64px !important;
+    height: 64px !important;
+  }
+
+  .cat-nm{
+    font-size: 11.5px !important;
+  }
+}
+</style>
+
+
+<style id="final-hero-strip-tight-fix">
+/* Final override: make the MEN/WOMEN black strip tight on mobile/tablet */
+@media (max-width: 900px){
+  .hero{
+    height: calc((100vw * 559 / 2048) + 34px) !important;
+    min-height: calc((100vw * 559 / 2048) + 34px) !important;
+    max-height: 190px !important;
+    background:#050505 !important;
+    overflow:hidden !important;
+    display:block !important;
+  }
+
+  #hero-slides{
+    position:absolute !important;
+    top:0 !important;
+    left:0 !important;
+    right:0 !important;
+    bottom:auto !important;
+    height: calc(100vw * 559 / 2048) !important;
+    max-height:156px !important;
+    min-height:98px !important;
+  }
+
+  .hs-slide{
+    background-size:contain !important;
+    background-repeat:no-repeat !important;
+    background-position:top center !important;
+  }
+
+  .hero-slide-img{
+    object-fit:contain !important;
+    object-position:top center !important;
+  }
+
+  .hero-ov,
+  .hero-cnt,
+  .hs-arrow{
+    display:none !important;
+  }
+
+  .hero-corners{
+    position:absolute !important;
+    left:0 !important;
+    right:0 !important;
+    bottom:0 !important;
+    height:34px !important;
+    padding:4px 24px 0 !important;
+    display:flex !important;
+    justify-content:space-between !important;
+    align-items:flex-start !important;
+    background:#050505 !important;
+    z-index:8 !important;
+  }
+
+  .hc-lnk{
+    font-size:11px !important;
+    line-height:1 !important;
+    padding-bottom:2px !important;
+    margin:0 !important;
+    letter-spacing:.12em !important;
+  }
+
+  .hs-dots{
+    position:absolute !important;
+    left:50% !important;
+    transform:translateX(-50%) !important;
+    bottom:28px !important;
+    gap:7px !important;
+    z-index:9 !important;
+  }
+
+  .hs-dot{
+    width:7px !important;
+    height:7px !important;
+  }
+}
+
+@media (max-width: 480px){
+  .hero{
+    height: calc((100vw * 559 / 2048) + 32px) !important;
+    min-height: calc((100vw * 559 / 2048) + 32px) !important;
+  }
+
+  .hero-corners{
+    height:32px !important;
+    padding:4px 20px 0 !important;
+  }
+
+  .hs-dots{
+    bottom:26px !important;
+  }
+}
+</style>
+
 </body>
 </html>
