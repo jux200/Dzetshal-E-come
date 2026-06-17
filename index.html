@@ -5000,5 +5000,44 @@ document.addEventListener('error', function(e){
 })();
 </script>
 
+
+<style id="mobile-menu-narrow-fix">
+/* Mobile menu drawer fix: narrower drawer so the page remains visible */
+@media(max-width:900px){
+  .mob-menu{
+    width:min(70vw,270px)!important;
+    max-width:270px!important;
+    left:calc(-1 * min(70vw,270px))!important;
+    padding:20px 18px!important;
+    z-index:700!important;
+    overflow-y:auto!important;
+  }
+  .mob-menu.open{
+    left:0!important;
+  }
+  .mob-overlay{
+    background:rgba(0,0,0,.32)!important;
+    z-index:699!important;
+  }
+  .mob-menu a{
+    font-size:14px!important;
+    padding:11px 0!important;
+  }
+  .mob-menu-head{
+    margin-bottom:18px!important;
+  }
+}
+@media(max-width:420px){
+  .mob-menu{
+    width:68vw!important;
+    max-width:255px!important;
+    left:-68vw!important;
+  }
+  .mob-menu.open{
+    left:0!important;
+  }
+}
+</style>
+
 </body>
 </html>
