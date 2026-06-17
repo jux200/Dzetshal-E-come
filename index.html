@@ -869,6 +869,41 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:2
 .mob-logout-btn{display:flex;align-items:center;gap:10px;padding:14px 24px;color:#c0392b;font-size:14px;font-weight:600;background:none;border:none;width:100%;text-align:left;cursor:pointer;border-top:1px solid var(--bd)}
 .mob-user-name{padding:10px 24px 4px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--tl);text-transform:uppercase}
 
+
+
+/* ── FIXES ADDED 2026-06-17: mobile header, search, hero, product page ── */
+.srch-img-wrap{width:40px;height:48px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:#f7f5f2;border-radius:4px;overflow:hidden;padding:2px}
+.srch-img-wrap .srch-item-img{width:100%;height:100%;object-fit:contain;background:transparent;padding:0;border-radius:0}
+.search-img-fallback{width:100%;height:100%;display:none;align-items:center;justify-content:center;background:#f7f5f2;border-radius:4px;color:var(--g);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.hero::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(90deg,rgba(0,0,0,.50),rgba(0,0,0,.24),rgba(0,0,0,.42));pointer-events:none}
+.product-container,.product-detail,.product-page,.pdetail{max-width:1180px;margin-left:auto;margin-right:auto;gap:40px}
+.main-accords,.accords,.maccords{max-width:100%;overflow:hidden}
+.accord-bar,.accord-row,.main-accord-row{min-height:26px}
+@media(max-width:900px){
+  .nav-user-menu{display:none!important}
+  .nav-r{gap:4px}
+  .nav-in{overflow:visible}
+  #mob-srch-ov{padding-top:max(18px,env(safe-area-inset-top));align-items:flex-start}
+  .mob-srch-box{max-height:calc(100dvh - 36px);display:flex;flex-direction:column}
+  .mob-srch-results{max-height:none;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .mob-srch-results .srch-img-wrap{width:56px;height:68px;padding:3px}
+  .mob-srch-results .srch-item-img,.mob-srch-results .search-img-fallback{width:100%;height:100%;padding:0}
+  .hero-bg{opacity:.48}
+}
+@media(max-width:768px){
+  .srch-drop{max-height:60dvh;overflow-y:auto}
+  .product-container,.product-detail,.product-page,.pdetail{display:block!important;padding-left:14px!important;padding-right:14px!important}
+  .product-container img,.product-detail img,.product-page img,.pdetail img{max-height:440px;object-fit:contain;margin-left:auto;margin-right:auto}
+}
+@media(max-width:480px){
+  .logo-wrap{max-width:142px;overflow:hidden}
+  .nav-r .nav-ic{padding:4px 5px}
+  .mob-srch-btn{order:-1}
+  .wa{bottom:16px;right:12px;transform:scale(.88);transform-origin:bottom right}
+  .wa-lbl{display:none!important}
+  #toast{bottom:90px}
+}
+
 </style>
 </head>
 <body>
@@ -2305,6 +2340,43 @@ function imgTag(sku, name, attrs){
       'else{el.style.display=\'none\';var n=el.nextElementSibling;if(n)n.style.display=\'block\';}'+
     '})(this)">';
 }
+
+
+function escAttr(v){
+  return String(v || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function handleSearchImgError(el){
+  var t = el.dataset.t || '';
+  if(t === 'avif'){
+    el.dataset.t = 'webp';
+    el.src = el.src.replace(/\.[a-z0-9]+$/i,'.webp');
+    return;
+  }
+  if(t === 'webp'){
+    el.dataset.t = 'png';
+    el.src = el.src.replace(/\.[a-z0-9]+$/i,'.png');
+    return;
+  }
+  if(t === 'png'){
+    el.dataset.t = 'jpg';
+    el.src = el.src.replace(/\.[a-z0-9]+$/i,'.jpg');
+    return;
+  }
+  el.style.display = 'none';
+  var fb = el.nextElementSibling;
+  if(fb) fb.style.display = 'flex';
+}
+function searchImgHtml(p){
+  var brand = (p.brand || '').slice(0,2).toUpperCase();
+  var stored = getImg(p.sku);
+  var src = stored || ('img/' + p.sku + '.avif');
+  var dataT = stored ? '' : ' data-t="avif"';
+  return '<div class="srch-img-wrap">'
+    + '<img class="srch-item-img" src="' + escAttr(src) + '" alt="' + escAttr(p.name || '') + '" loading="eager" decoding="async"' + dataT + ' onerror="handleSearchImgError(this)">'
+    + '<div class="search-img-fallback" aria-hidden="true">' + brand + '</div>'
+    + '</div>';
+}
+
 // Returns true only if an image was explicitly uploaded/baked (not just a fallback path)
 // Return array of up to 3 image slots for a sku [img0, img1, img2] (null if empty)
 function getImgSlots(sku){
@@ -2394,11 +2466,8 @@ function renderSearchDrop(query){
     var html = '';
     for(var i=0;i<results.length;i++){
       var p = results[i];
-      var img = getImg(p.sku);
       var oos = !isInStock(p.sku);
-      var imgHtml = img
-        ? '<img class="srch-item-img" src="' + img + '" alt="" onerror="this.src=\'\'">'
-        : '<div class="srch-item-img" style="background:var(--lg)"></div>';
+      var imgHtml = searchImgHtml(p);
       html += '<div class="srch-item" onclick="closeSrchDrop();openModal(\'' + p.sku + '\')">'
         + imgHtml
         + '<div class="srch-item-info">'
@@ -3580,9 +3649,8 @@ function onMobSearch(val){
   const hits=RAW.filter(p=>p.name.toLowerCase().includes(q)||p.brand.toLowerCase().includes(q)).slice(0,8);
   if(!hits.length){el.innerHTML='<div class="srch-no-results">No fragrances found</div>';return;}
   el.innerHTML=hits.map(p=>{
-    const img=getImg(p.sku);
     return `<div class="srch-item" onclick="closeMobSearch();openModal('${p.sku}','')">
-      ${img?`<img class="srch-item-img" src="${img}" alt="${p.name}" onerror="this.style.display='none'">`:'<div class="srch-item-img" style="background:var(--lg)"></div>'}
+      ${searchImgHtml(p)}
       <div class="srch-item-info">
         <div class="srch-item-brand">${p.brand}</div>
         <div class="srch-item-name">${p.name.length>50?p.name.slice(0,50)+'…':p.name}</div>
