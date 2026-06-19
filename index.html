@@ -1060,6 +1060,36 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:2
   }
 }
 
+
+/* Show product gallery in modal on mobile */
+@media(max-width:900px){
+  .mbox{
+    grid-template-columns:1fr !important;
+  }
+
+  .mimg{
+    display:flex !important;
+    min-height:280px !important;
+    max-height:320px !important;
+    border-bottom:1px solid var(--bd);
+  }
+
+  .mthumb-strip{
+    width:60px !important;
+  }
+
+  .mthumb-strip .mthumb{
+    width:48px !important;
+    height:48px !important;
+  }
+
+  .mimg-main .mgslide img{
+    width:90% !important;
+    height:90% !important;
+    object-fit:contain !important;
+  }
+}
+
 </style>
 </head>
 <body>
