@@ -1091,6 +1091,74 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:2
 }
 
 </style>
+
+<style>
+/* Final responsive modal fix: keep product box above sticky menu and fully scrollable */
+body.modal-open{overflow:hidden !important;}
+body.modal-open #topbar,
+body.modal-open #nav{z-index:100 !important;}
+#mov.mov{
+  z-index:5000 !important;
+  inset:0 !important;
+  padding:clamp(12px,2vw,24px) !important;
+  align-items:center !important;
+  justify-content:center !important;
+  overflow-y:auto !important;
+  overscroll-behavior:contain !important;
+}
+#mov.mov.open{display:flex !important;}
+#mov .mbox{
+  width:min(1120px,96vw) !important;
+  max-width:96vw !important;
+  max-height:calc(100dvh - 32px) !important;
+  margin:auto !important;
+  overflow-y:auto !important;
+  overflow-x:hidden !important;
+  z-index:5001 !important;
+}
+#mov .mclose{z-index:5002 !important;}
+#gz-lens,#gz-result{z-index:6000 !important;}
+@media(max-width:900px){
+  #mov.mov{
+    padding:10px !important;
+    align-items:flex-start !important;
+  }
+  #mov .mbox{
+    width:min(560px,96vw) !important;
+    max-width:96vw !important;
+    max-height:calc(100dvh - 20px) !important;
+    border-radius:10px !important;
+    grid-template-columns:1fr !important;
+  }
+  #mov .mimg{
+    display:flex !important;
+    min-height:260px !important;
+    max-height:42dvh !important;
+    height:42dvh !important;
+  }
+  #mov .mimg-main{min-height:260px !important;}
+  #mov .mimg-main .mgslide img{width:78% !important;height:78% !important;}
+  #mov .mthumb-strip{width:64px !important;padding:8px 5px !important;}
+  #mov .mthumb-strip .mthumb{width:52px !important;height:52px !important;}
+  #mov .minfo{padding:24px 20px 88px !important;}
+  #mov .mname{font-size:20px !important;line-height:1.35 !important;}
+}
+@media(max-width:520px){
+  #mov.mov{padding:0 !important;}
+  #mov .mbox{
+    width:100vw !important;
+    max-width:100vw !important;
+    min-height:100dvh !important;
+    max-height:100dvh !important;
+    border-radius:0 !important;
+  }
+  #mov .mimg{height:40dvh !important;min-height:235px !important;}
+  #mov .mimg-main{min-height:235px !important;}
+  #mov .minfo{padding:22px 18px 92px !important;}
+  #mov .mprice{font-size:30px !important;}
+  #mov .mclose{top:12px !important;right:12px !important;}
+}
+</style>
 </head>
 <body>
 
@@ -2682,6 +2750,15 @@ async function init(){
 ================================================================ */
 function setState(patch){
   Object.assign(filter, patch);
+  if(patch.search === ''){
+    const desktopSearch = document.getElementById('srch');
+    if(desktopSearch) desktopSearch.value = '';
+    const mobileSearch = document.getElementById('mob-srch-inp');
+    if(mobileSearch) mobileSearch.value = '';
+    const mobileResults = document.getElementById('mob-srch-results');
+    if(mobileResults) mobileResults.innerHTML = '';
+    closeSrchDrop();
+  }
   if(!('page' in patch)) filter.page = 1;
   syncFilterUI();
   renderGrid();
@@ -2696,6 +2773,20 @@ function syncFilterUI(){
   document.querySelectorAll('#type-pills .pill').forEach(p=>{
     p.classList.toggle('on', p.dataset.val === filter.type);
   });
+}
+
+
+function clearSearchState(){
+  // When a visitor clicks a brand, gender, type, or category filter,
+  // the previous search must not keep filtering the collection in the background.
+  filter.search = '';
+  const desktopSearch = document.getElementById('srch');
+  if(desktopSearch) desktopSearch.value = '';
+  const mobileSearch = document.getElementById('mob-srch-inp');
+  if(mobileSearch) mobileSearch.value = '';
+  const mobileResults = document.getElementById('mob-srch-results');
+  if(mobileResults) mobileResults.innerHTML = '';
+  closeSrchDrop();
 }
 
 
@@ -2751,6 +2842,7 @@ document.addEventListener('click', e=>{
 
 
 function setGender(g){
+  clearSearchState();
   filter.gender=g; filter.page=1;
   syncFilterUI();
   renderGrid();
@@ -2758,8 +2850,9 @@ function setGender(g){
 }
 
 function setType(t){
+  clearSearchState();
   filter.type=t; filter.page=1;
-  document.querySelectorAll('#type-pills .pill').forEach(p=>p.classList.toggle('on',p.dataset.val===t));
+  syncFilterUI();
   renderGrid();
   document.getElementById('products').scrollIntoView({behavior:'smooth'});
 }
@@ -2890,16 +2983,16 @@ function buildTypePills(){
 }
 
 function setBrand(el,b){
+  clearSearchState();
   filter.brand=b; filter.page=1;
-  document.querySelectorAll('#brand-pills .pill').forEach(p=>p.classList.remove('on'));
-  el.classList.add('on');
+  syncFilterUI();
   renderGrid();
 }
 
 function setTypeBtn(el,t){
+  clearSearchState();
   filter.type=t; filter.page=1;
-  document.querySelectorAll('#type-pills .pill').forEach(p=>p.classList.remove('on'));
-  el.classList.add('on');
+  syncFilterUI();
   renderGrid();
 }
 
@@ -3301,6 +3394,10 @@ function openModal(sku, groupKey){
     const img = getImg(mp.sku);
     const oos = !isInStock(mp.sku);
     const stkInfo = getStkInfo(mp.sku);
+    const typeText = String(mp.type || '').toLowerCase();
+    const nameText = String(mp.name || '').toLowerCase();
+    const isFragranceProduct = /^(edp|edt|edc|parfum|extrait|cologne|eau de parfum|eau de toilette)$/i.test(String(mp.type || '').trim())
+      && !/(body|deodorant|deo|shower|gel|shampoo|lotion|cream|soap|spray deodorant)/i.test(typeText + ' ' + nameText);
 
     // Update image panel — multi-image gallery
     const imgSlots = getImgSlots(mp.sku);
@@ -3628,10 +3725,10 @@ function openModal(sku, groupKey){
       };
       return typeDefaults[mp.type] || { accords:[["Floral",80],["Woody",68],["Musky",60],["Warm",50],["Amber",42]] };
     }
-    const fragInfo = getFragranceInfo(mp.name, mp.brand);
-    const rawAccords = fragInfo.accords || [];
-    const fragYear = fragInfo.year || null;
-    const fragStory = fragInfo.story || null;
+    const fragInfo = isFragranceProduct ? getFragranceInfo(mp.name, mp.brand) : {};
+    const rawAccords = isFragranceProduct ? (fragInfo.accords || []) : [];
+    const fragYear = isFragranceProduct ? (fragInfo.year || null) : null;
+    const fragStory = isFragranceProduct ? (fragInfo.story || `${displayName} by ${mp.brand} is part of the house's fragrance collection. This ${mp.type || 'fragrance'} is presented as a ${String(mp.gender || 'unisex').toLowerCase()} scent with a character shaped by its freshness, heart notes and lasting base.`) : null;
 
     // Normalise accords: support both old string[] and new [name, weight][] formats
     const accords = rawAccords.map((a,i)=>{
@@ -3639,6 +3736,51 @@ function openModal(sku, groupKey){
       // Legacy string format — assign descending weights
       return {name:a, weight:Math.round(95 - i*10)};
     });
+
+    function buildNotePyramid(accordNames, product, displayName){
+      const text = (accordNames || []).join(' ').toLowerCase() + ' ' + String(product.name || '').toLowerCase();
+      const addUnique = (arr, vals)=>{
+        vals.forEach(v=>{ if(v && !arr.includes(v)) arr.push(v); });
+      };
+      const top=[], middle=[], base=[];
+
+      if(/citrus|fresh|bergamot/.test(text)) addUnique(top,['Bergamot','Lemon','Grapefruit']);
+      if(/aquatic|marine|water/.test(text)) addUnique(top,['Marine Notes','Grapefruit']);
+      if(/aromatic|lavender|fougere|fougère/.test(text)) addUnique(top,['Lavender','Clary Sage']);
+      if(/spicy|pepper|cardamom/.test(text)) addUnique(top,['Pink Pepper','Cardamom']);
+      if(/fruity|apple|pear|berry|litchi|pomegranate/.test(text)) addUnique(top,['Pear','Red Berries']);
+      if(/green|herbal/.test(text)) addUnique(top,['Violet Leaf','Green Notes']);
+      if(/aldehydic/.test(text)) addUnique(top,['Aldehydes','Neroli']);
+
+      if(/floral|rose/.test(text)) addUnique(middle,['Rose','Jasmine']);
+      if(/white floral|tuberose|orange blossom|gardenia/.test(text)) addUnique(middle,['Orange Blossom','Tuberose','Jasmine']);
+      if(/iris|powdery/.test(text)) addUnique(middle,['Iris','Violet']);
+      if(/lavender|aromatic/.test(text)) addUnique(middle,['Lavender','Geranium']);
+      if(/coffee/.test(text)) addUnique(middle,['Coffee','White Flowers']);
+      if(/spicy|oriental|warm/.test(text)) addUnique(middle,['Cinnamon','Nutmeg']);
+      if(/aquatic|fresh/.test(text)) addUnique(middle,['Violet Leaf','Watery Notes']);
+
+      if(/woody|cedar|sandalwood/.test(text)) addUnique(base,['Cedarwood','Sandalwood']);
+      if(/musky|musk/.test(text)) addUnique(base,['White Musk']);
+      if(/amber|oriental|resinous/.test(text)) addUnique(base,['Amber','Benzoin']);
+      if(/vanilla|sweet|gourmand/.test(text)) addUnique(base,['Vanilla','Tonka Bean']);
+      if(/patchouli|chypre/.test(text)) addUnique(base,['Patchouli','Oakmoss']);
+      if(/leather/.test(text)) addUnique(base,['Leather','Vetiver']);
+      if(/aquatic|fresh|aromatic/.test(text)) addUnique(base,['Musk','Cedarwood']);
+
+      const type = String(product.type || '').toUpperCase();
+      if(!top.length) addUnique(top, type === 'EDT' ? ['Bergamot','Green Notes'] : ['Bergamot','Pink Pepper']);
+      if(!middle.length) addUnique(middle, ['Jasmine','Lavender']);
+      if(!base.length) addUnique(base, type === 'EDT' ? ['Cedarwood','Musk'] : ['Amber','White Musk']);
+
+      return {
+        top: top.slice(0,3),
+        middle: middle.slice(0,3),
+        base: base.slice(0,3)
+      };
+    }
+
+    const fragNotes = isFragranceProduct ? (fragInfo.notes || buildNotePyramid(accords.map(a=>a.name), mp, displayName)) : null;
 
     // Accord bar colour palette (one per accord position)
     const accordBarColors = ["#e8534a","#e87fa0","#e86060","#b8956a","#c8c49a","#8fbb8f","#7ec8d8","#e8c46a","#d48fa0","#9bb8a8"];
@@ -3659,6 +3801,22 @@ function openModal(sku, groupKey){
         </div>
       </div>` : '';
 
+    const notesHTML = (isFragranceProduct && fragNotes) ? `
+      <div style="margin-bottom:18px;border-top:1px solid var(--mg);padding-top:14px">
+        <div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tm);margin-bottom:10px">✦ Fragrance Notes</div>
+        ${[
+          ['Top Notes', fragNotes.top],
+          ['Middle Notes', fragNotes.middle],
+          ['Base Notes', fragNotes.base]
+        ].map(([label, list])=>`
+          <div style="display:grid;grid-template-columns:104px 1fr;gap:10px;align-items:start;padding:8px 0;border-bottom:1px solid var(--mg)">
+            <div style="font-size:11px;color:var(--tl);font-weight:600">${label}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              ${(list||[]).map(n=>`<span style="font-size:11px;background:var(--lg);border:1px solid var(--bd);border-radius:14px;padding:4px 9px;color:var(--tm)">${n}</span>`).join('')}
+            </div>
+          </div>`).join('')}
+      </div>` : '';
+
     const storyHTML = (fragStory || fragYear) ? `
       <div style="margin-bottom:18px;background:var(--lg);border-left:3px solid var(--p);border-radius:0 6px 6px 0;padding:12px 14px">
         ${fragYear ? `<div style="font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--pd);margin-bottom:6px">✦ Launched ${fragYear}</div>` : ''}
@@ -3668,13 +3826,14 @@ function openModal(sku, groupKey){
     const brand = mp.brand;
     const history = historyData[brand] || (brand+' is a distinguished fragrance house crafting scents with the finest ingredients, reflecting decades of olfactory expertise and authentic luxury.');
     const hid = 'hist-'+mp.sku;
-    const historySection =
+    const historySection = isFragranceProduct ? (
       '<div style="margin-top:18px;border-top:1px solid var(--mg);padding-top:14px">'
       +'<button onclick="toggleHistory(\''+hid+'\')" style="display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;cursor:pointer;padding:0;font-family:inherit">'
       +'<span style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--g)">🏛 The Story of '+brand+'</span>'
       +'<svg id="arr-'+hid+'" width="14" height="14" fill="none" stroke="var(--g)" stroke-width="2" viewBox="0 0 24 24" style="transition:transform .25s;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>'
       +'</button>'
-      +'<div id="'+hid+'" style="display:none;margin-top:10px;font-size:12px;line-height:1.7;color:var(--tm);font-weight:300;background:var(--lg);padding:12px;border-left:3px solid var(--p)">'+history+'</div></div>';
+      +'<div id="'+hid+'" style="display:none;margin-top:10px;font-size:12px;line-height:1.7;color:var(--tm);font-weight:300;background:var(--lg);padding:12px;border-left:3px solid var(--p)">'+history+'</div></div>'
+    ) : '';
 
     document.getElementById('minfo').innerHTML = `
       <div class="mbrand">${mp.brand}</div>
@@ -3685,9 +3844,10 @@ function openModal(sku, groupKey){
       <div class="mdets">
         <div class="mdet"><span class="mdk">Type</span><span>${mp.type}</span></div>
         ${mp.size?`<div class="mdet"><span class="mdk">Size</span><span>${mp.size}</span></div>`:''}
-        <div class="mdet"><span class="mdk">Gender</span><span style="text-transform:capitalize">${mp.gender}</span></div>
+        ${isFragranceProduct ? `<div class="mdet"><span class="mdk">Gender</span><span style="text-transform:capitalize">${mp.gender}</span></div>` : ''}
       </div>
       ${accordsHTML}
+      ${notesHTML}
       ${storyHTML}
       ${historySection}
       <div class="macts" style="margin-top:20px;border-top:1px solid var(--mg);padding-top:18px">
@@ -3715,7 +3875,12 @@ function openModal(sku, groupKey){
 
   renderModalBody(sku);
   setTimeout(DZ_attachModalZoom, 80);
-  document.getElementById('mov').classList.add('open');
+  const modalEl = document.getElementById('mov');
+  const boxEl = modalEl ? modalEl.querySelector('.mbox') : null;
+  if(boxEl) boxEl.scrollTop = 0;
+  if(modalEl) modalEl.scrollTop = 0;
+  if(modalEl) modalEl.classList.add('open');
+  document.body.classList.add('modal-open');
   document.body.style.overflow='hidden';
 
   // Attach magnifier AFTER gallery HTML is in the DOM
@@ -3826,6 +3991,7 @@ function toggleHistory(hid){
 
 function closeModal(){
   document.getElementById('mov').classList.remove('open');
+  document.body.classList.remove('modal-open');
   document.body.style.overflow='';
   // Hide zoom elements
   const lens = document.getElementById('gz-lens');
@@ -4563,6 +4729,7 @@ document.addEventListener('keydown', function(e){
 });
 
 function filterAndScroll(patch){
+  clearSearchState();
   // Reset first, then apply patch
   filter.brand  = patch.brand  !== undefined ? patch.brand  : filter.brand;
   filter.gender = patch.gender !== undefined ? patch.gender : 'all';
