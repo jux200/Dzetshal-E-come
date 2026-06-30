@@ -278,6 +278,14 @@ ul{list-style:none}
 .fmsg.ok{background:#e8f5f0;color:var(--g);border:1px solid #9fd9c3}
 .fmsg.err{background:#fde8e8;color:var(--red);border:1px solid #f9b3b3}
 
+.checkout-methods{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.checkout-methods .btn{width:100%;justify-content:center;text-align:center}
+.method-choice{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.method-choice label{display:flex;align-items:center;gap:8px;border:1px solid var(--bd);background:var(--ow);border-radius:6px;padding:10px 12px;font-size:12px;color:var(--tm);cursor:pointer;text-transform:none;letter-spacing:0;font-weight:500}
+.method-choice input{accent-color:var(--g)}
+@media(max-width:480px){.checkout-methods{grid-template-columns:1fr}}
+
+
 /* ── MAP ─────────────────────────────────────────────── */
 .map-sec{height:320px}
 .map-sec iframe{width:100%;height:100%;border:none}
@@ -1090,6 +1098,85 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:2
   }
 }
 
+
+
+/* ── IMPROVED CHECKOUT FORM MODAL ───────────────────────────── */
+.checkout-form-ov{display:none;position:fixed;inset:0;z-index:1200;background:rgba(10,24,21,.62);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:18px}
+.checkout-form-ov.open{display:flex}
+.checkout-form-box{width:min(560px,96vw);max-height:92vh;overflow-y:auto;background:#fff;border-radius:12px;box-shadow:0 24px 80px rgba(0,0,0,.25);border:1px solid var(--bd)}
+.checkout-form-head{display:flex;align-items:center;justify-content:space-between;padding:20px 22px;border-bottom:1px solid var(--bd);background:var(--ow)}
+.checkout-form-head h3{font-size:18px;color:var(--g);font-weight:700;margin:0}
+.checkout-form-close{background:#fff;border:1px solid var(--bd);border-radius:50%;width:34px;height:34px;font-size:18px;line-height:1;color:var(--tm);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.checkout-form-close:hover{border-color:var(--g);color:var(--g)}
+.checkout-form-body{padding:20px 22px 22px}
+.checkout-form-note{font-size:13px;color:var(--tm);line-height:1.6;background:#f8f6f2;border:1px solid var(--bd);border-radius:8px;padding:12px 14px;margin-bottom:16px}
+.checkout-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.checkout-field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.checkout-field.full{grid-column:1/-1}
+.checkout-field label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tm)}
+.checkout-field input,.checkout-field textarea,.checkout-field select{width:100%;border:1.5px solid var(--bd);background:#fff;border-radius:7px;padding:11px 12px;font-size:14px;color:var(--td);outline:none;font-family:inherit;transition:border-color .18s,box-shadow .18s}
+.checkout-field textarea{min-height:78px;resize:vertical}
+.checkout-field input:focus,.checkout-field textarea:focus,.checkout-field select:focus{border-color:var(--g);box-shadow:0 0 0 3px rgba(34,76,68,.08)}
+.checkout-order-preview{border:1px solid var(--bd);border-radius:8px;background:var(--ow);padding:12px 14px;margin:4px 0 16px}
+.checkout-order-preview h4{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--g);margin-bottom:8px}
+.checkout-order-preview p{font-size:13px;line-height:1.55;color:var(--tm);margin:0 0 4px}
+.checkout-order-total{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--bd);padding-top:10px;margin-top:10px;font-size:14px;color:var(--tm)}
+.checkout-order-total strong{font-size:18px;color:var(--g)}
+.checkout-form-actions{display:flex;gap:10px;justify-content:flex-end;align-items:center;margin-top:4px}
+.checkout-form-actions .btn{min-width:150px}
+.checkout-form-actions .btn[disabled]{opacity:.65;cursor:not-allowed}
+@media(max-width:560px){.checkout-form-ov{align-items:flex-end;padding:0}.checkout-form-box{width:100%;max-height:94vh;border-radius:16px 16px 0 0}.checkout-grid{grid-template-columns:1fr}.checkout-form-actions{flex-direction:column-reverse}.checkout-form-actions .btn{width:100%}}
+.checkout-field input.invalid,.checkout-field textarea.invalid,.checkout-field select.invalid{border-color:var(--red);box-shadow:0 0 0 3px rgba(193,39,45,.08)}
+.checkout-error{display:none;font-size:11px;color:var(--red);line-height:1.35;margin-top:2px}
+.checkout-error.show{display:block}
+.btn-loading{position:relative;pointer-events:none;opacity:.78}
+.btn-loading::before{content:'';width:14px;height:14px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;display:inline-block;margin-right:8px;vertical-align:-2px;animation:dztspin .8s linear infinite}
+@keyframes dztspin{to{transform:rotate(360deg)}}
+.checkout-success-card{text-align:center;padding:30px 26px 28px}
+.checkout-success-icon{width:58px;height:58px;border-radius:50%;background:#e8f5f0;color:var(--g);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 16px;border:1px solid #bfe3d7}
+.checkout-success-card h3{font-size:22px;color:var(--g);margin-bottom:10px}
+.checkout-success-card p{font-size:14px;color:var(--tm);line-height:1.65;margin-bottom:10px}
+.checkout-success-meta{background:var(--ow);border:1px solid var(--bd);border-radius:10px;padding:14px;margin:18px 0;text-align:left;font-size:13px;color:var(--tm);line-height:1.7}
+.checkout-success-meta strong{color:var(--td)}
+.checkout-success-actions{display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap}
+.checkout-form-status{display:none;margin:12px 0 0;padding:11px 13px;border-radius:8px;font-size:13px;line-height:1.5}
+.checkout-form-status.ok{display:block;background:#e8f5f0;color:var(--g);border:1px solid #bfe3d7}
+.checkout-form-status.err{display:block;background:#fdecec;color:var(--red);border:1px solid #f3c1c1}
+.contact-loading{opacity:.75;pointer-events:none}
+@media(max-width:560px){.checkout-success-actions .btn{width:100%}.checkout-success-card{padding:26px 20px}}
+
+
+/* ── CHECKOUT FORM ABOVE PRODUCT MODAL FIX ─────────────────── */
+#checkoutFormOv.checkout-form-ov,
+#checkoutSuccessOv.checkout-form-ov{
+  z-index:12000 !important;
+}
+#checkoutFormOv .checkout-form-box,
+#checkoutSuccessOv .checkout-form-box{
+  position:relative;
+  z-index:12001 !important;
+}
+body.checkout-open #mov.mov{
+  pointer-events:none;
+}
+body.checkout-open #checkoutFormOv,
+body.checkout-open #checkoutSuccessOv{
+  pointer-events:auto;
+}
+@media(max-width:560px){
+  #checkoutFormOv.checkout-form-ov,
+  #checkoutSuccessOv.checkout-form-ov{
+    align-items:flex-end !important;
+    padding:0 !important;
+  }
+  #checkoutFormOv .checkout-form-box,
+  #checkoutSuccessOv .checkout-form-box{
+    width:100% !important;
+    max-height:92dvh !important;
+    border-radius:18px 18px 0 0 !important;
+  }
+}
+
 </style>
 
 <style>
@@ -1159,6 +1246,7 @@ body.modal-open #nav{z-index:100 !important;}
   #mov .mclose{top:12px !important;right:12px !important;}
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
 
@@ -1756,6 +1844,13 @@ body.modal-open #nav{z-index:100 !important;}
         </div>
         <div class="fg"><label>Email *</label><input type="email" id="fe" placeholder="your@email.com"><span class="ferr" id="fe-e"></span></div>
         <div class="fg"><label>Message *</label><textarea id="fm" placeholder="How can we help you?"></textarea><span class="ferr" id="fm-e"></span></div>
+        <div class="fg">
+          <label>Send Method</label>
+          <div class="method-choice">
+            <label><input type="radio" name="contactMethod" value="emailjs" checked> Email</label>
+            <label><input type="radio" name="contactMethod" value="whatsapp"> WhatsApp</label>
+          </div>
+        </div>
         <button type="submit" class="btn btn-dk" style="width:100%;justify-content:center">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:6px"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           Send Message
@@ -2025,6 +2120,77 @@ body.modal-open #nav{z-index:100 !important;}
 </div>
 
 <!-- TOAST -->
+
+
+<div class="checkout-form-ov" id="checkoutFormOv" aria-hidden="true">
+  <div class="checkout-form-box" role="dialog" aria-modal="true" aria-labelledby="checkoutFormTitle">
+    <div class="checkout-form-head">
+      <h3 id="checkoutFormTitle">Secure Email Checkout</h3>
+      <button class="checkout-form-close" type="button" onclick="closeCheckoutForm()" aria-label="Close checkout form">×</button>
+    </div>
+    <form class="checkout-form-body" id="checkoutEmailForm" onsubmit="submitCheckoutEmailForm(event)">
+      <div class="checkout-form-note">Please enter your details below. Your order will be sent securely to Dzetshal, and our team will contact you to confirm payment and delivery.</div>
+      <div class="checkout-order-preview" id="checkoutOrderPreview"></div>
+      <div class="checkout-grid">
+        <div class="checkout-field full">
+          <label for="coName">Full name *</label>
+          <input id="coName" name="customer_name" type="text" autocomplete="name" required placeholder="Example: Jux Junior"><span class="checkout-error" id="coNameErr"></span>
+        </div>
+        <div class="checkout-field">
+          <label for="coPhone">Phone number *</label>
+          <input id="coPhone" name="customer_phone" type="tel" autocomplete="tel" required placeholder="Example: 0782063101"><span class="checkout-error" id="coPhoneErr"></span>
+        </div>
+        <div class="checkout-field">
+          <label for="coEmail">Email address *</label>
+          <input id="coEmail" name="customer_email" type="email" autocomplete="email" required placeholder="example@gmail.com"><span class="checkout-error" id="coEmailErr"></span>
+        </div>
+        <div class="checkout-field">
+          <label for="coCity">City / area *</label>
+          <input id="coCity" name="city" type="text" autocomplete="address-level2" required placeholder="Example: Kigali"><span class="checkout-error" id="coCityErr"></span>
+        </div>
+        <div class="checkout-field">
+          <label for="coPayment">Payment method *</label>
+          <select id="coPayment" name="payment_method" required>
+            <option value="">Select payment method</option>
+            <option value="Momo">Momo</option>
+            <option value="Cash on delivery">Cash on delivery</option>
+            <option value="Bank transfer">Bank transfer</option>
+            <option value="To be confirmed">To be confirmed</option>
+          </select><span class="checkout-error" id="coPaymentErr"></span>
+        </div>
+        <div class="checkout-field full">
+          <label for="coAddress">Delivery address *</label>
+          <textarea id="coAddress" name="address" required placeholder="House number, street, building, landmark..."></textarea><span class="checkout-error" id="coAddressErr"></span>
+        </div>
+        <div class="checkout-field full">
+          <label for="coNotes">Order notes, optional</label>
+          <textarea id="coNotes" name="notes" placeholder="Any special delivery details or preferred contact time..."></textarea>
+        </div>
+      </div>
+      <div class="checkout-form-status" id="checkoutFormStatus"></div>
+      <div class="checkout-form-actions">
+        <button class="btn btn-ol" type="button" onclick="closeCheckoutForm()">Cancel</button>
+        <button class="btn btn-g" id="checkoutEmailSubmitBtn" type="submit">Place Order by Email</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="checkout-form-ov" id="checkoutSuccessOv" aria-hidden="true">
+  <div class="checkout-form-box" role="dialog" aria-modal="true" aria-labelledby="checkoutSuccessTitle">
+    <div class="checkout-success-card">
+      <div class="checkout-success-icon">✓</div>
+      <h3 id="checkoutSuccessTitle">Order Received</h3>
+      <p>Thank you for shopping with <strong>Dzetshal – Jardin de Beauté</strong>.</p>
+      <p>Our team will contact you shortly to confirm product availability, payment, and delivery.</p>
+      <div class="checkout-success-meta" id="checkoutSuccessMeta"></div>
+      <div class="checkout-success-actions">
+        <button class="btn btn-g" type="button" onclick="closeCheckoutSuccess()">Continue Shopping</button>
+        <button class="btn btn-ol" type="button" onclick="window.open('https://wa.me/250795308453','_blank')">Contact WhatsApp</button>
+      </div>
+    </div>
+  </div>
+</div>
 <div id="toast"></div>
 
 <script>
@@ -3220,22 +3386,437 @@ function renderCartDrawer(){
   foot.innerHTML=`
     <div class="ctotal"><span>Total (${count} items)</span><strong>${fmt(total)}</strong></div>
     <div class="cvat">All prices include VAT</div>
-    <button class="btn btn-g" style="width:100%;margin-bottom:10px" onclick="checkoutWhatsApp()">Proceed to Checkout via WhatsApp</button>
-    <button class="btn btn-ol" style="width:100%" onclick="closeCart()">Continue Shopping</button>`;
+    <div class="checkout-methods">
+      <button class="btn btn-g" onclick="checkoutWhatsApp()">Checkout via WhatsApp</button>
+      <button class="btn btn-ol" onclick="checkoutEmail()">Checkout via Email</button>
+    </div>
+    <button class="btn btn-ol" style="width:100%;margin-top:10px" onclick="closeCart()">Continue Shopping</button>`;
 }
 
 function checkoutWhatsApp(){
-  if(!cart.length){ toast('Your cart is empty'); return; }
-  const lines = cart.map(c=>{
-    const p = RAW.find(x=>x.sku===c.sku);
-    return p ? `• ${p.brand} – ${p.name} (x${c.qty}) @ ${fmt(p.price*c.qty)}` : '';
-  }).filter(Boolean);
-  const total = cart.reduce((s,c)=>{const p=RAW.find(x=>x.sku===c.sku);return s+(p?p.price*c.qty:0);},0);
-  const msg = encodeURIComponent(
-    `Hello Dzetshal! I'd like to order:\n\n${lines.join('\n')}\n\nTotal: ${fmt(total)}\n\nPlease confirm availability and payment details. Thank you!`
-  );
-  window.open(`https://wa.me/250795308453?text=${msg}`, '_blank');
+  openCheckoutForm('whatsapp');
 }
+
+/* ================================================================
+   EMAILJS SETTINGS
+   Fill in publicKey and template IDs from your Email dashboard.
+   Service ID from your Gmail service: service_zv5zomw
+================================================================ */
+const EMAILJS_CONFIG = {
+  serviceId: 'service_zv5zomw',
+  publicKey: 'mP1_08TCc-kRHiYIb',
+  orderTemplateId: 'template_84yjhjw',
+  contactTemplateId: 'template_w98zkrt'
+};
+
+function isEmailReady(){
+  return typeof emailjs !== 'undefined'
+    && EMAILJS_CONFIG.publicKey
+    && !EMAILJS_CONFIG.publicKey.includes('YOUR_')
+    && EMAILJS_CONFIG.serviceId
+    && EMAILJS_CONFIG.serviceId !== 'YOUR_SERVICE_ID';
+}
+
+function initEmail(){
+  if(isEmailReady()){
+    try{ emailjs.init({ publicKey: EMAILJS_CONFIG.publicKey }); }catch(e){}
+  }
+}
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', initEmail);
+}else{
+  initEmail();
+}
+
+let checkoutContext = { method: 'email', items: null, source: 'cart' };
+
+function getCheckoutItems(){
+  return Array.isArray(checkoutContext.items) && checkoutContext.items.length ? checkoutContext.items : cart;
+}
+
+function buildOrderSummary(items){
+  const orderItems = Array.isArray(items) ? items : getCheckoutItems();
+  const lines = orderItems.map(c=>{
+    const p = RAW.find(x=>x.sku===c.sku);
+    return p ? `${p.brand} - ${p.name} | Qty: ${c.qty} | ${fmt(p.price*c.qty)}` : '';
+  }).filter(Boolean);
+  const total = orderItems.reduce((s,c)=>{const p=RAW.find(x=>x.sku===c.sku);return s+(p?p.price*c.qty:0);},0);
+  return {lines, total};
+}
+
+function createOrderNumber(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  const h = String(d.getHours()).padStart(2,'0');
+  const min = String(d.getMinutes()).padStart(2,'0');
+  const sec = String(d.getSeconds()).padStart(2,'0');
+  const rnd = Math.random().toString(36).slice(2,6).toUpperCase();
+  return `DZT-${y}${m}${day}-${h}${min}${sec}-${rnd}`;
+}
+
+function escapeHtml(value){
+  return String(value || '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[ch]));
+}
+
+function renderCheckoutOrderPreview(){
+  const box = document.getElementById('checkoutOrderPreview');
+  if(!box) return;
+  const order = buildOrderSummary();
+  const count = getCheckoutItems().reduce((s,c)=>s+c.qty,0);
+  const itemsHtml = order.lines.length
+    ? order.lines.map(line=>`<p>${escapeHtml(line)}</p>`).join('')
+    : '<p>Your cart is empty.</p>';
+  box.innerHTML = `
+    <h4>Order Summary (${count} item${count===1?'':'s'})</h4>
+    ${itemsHtml}
+    <div class="checkout-order-total"><span>Total</span><strong>${fmt(order.total)}</strong></div>`;
+}
+
+function setCheckoutError(id, message){
+  const input = document.getElementById(id);
+  const err = document.getElementById(id + 'Err');
+  if(input) input.classList.toggle('invalid', !!message);
+  if(err){ err.textContent = message || ''; err.classList.toggle('show', !!message); }
+}
+
+function setCheckoutStatus(message, type){
+  const el = document.getElementById('checkoutFormStatus');
+  if(!el) return;
+  if(!message){ el.textContent=''; el.className='checkout-form-status'; return; }
+  el.textContent = message;
+  el.className = 'checkout-form-status ' + (type || 'ok');
+}
+
+function validateCheckoutForm(){
+  const customerName = (document.getElementById('coName')?.value || '').trim();
+  const customerPhone = (document.getElementById('coPhone')?.value || '').trim();
+  const customerEmail = (document.getElementById('coEmail')?.value || '').trim();
+  const city = (document.getElementById('coCity')?.value || '').trim();
+  const address = (document.getElementById('coAddress')?.value || '').trim();
+  const paymentMethod = (document.getElementById('coPayment')?.value || '').trim();
+  let ok = true;
+  const emailRequired = checkoutContext.method === 'email';
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail);
+  const phoneOk = /^[0-9+()\s-]{7,}$/.test(customerPhone);
+  setCheckoutError('coName', customerName.length >= 2 ? '' : 'Please enter your full name.'); ok = ok && customerName.length >= 2;
+  setCheckoutError('coPhone', phoneOk ? '' : 'Please enter a valid phone number.'); ok = ok && phoneOk;
+  setCheckoutError('coEmail', (!emailRequired && !customerEmail) || emailOk ? '' : 'Please enter a valid email address.'); ok = ok && ((!emailRequired && !customerEmail) || emailOk);
+  setCheckoutError('coCity', city.length >= 2 ? '' : 'Please enter your city or delivery area.'); ok = ok && city.length >= 2;
+  setCheckoutError('coPayment', paymentMethod ? '' : 'Please select a payment method.'); ok = ok && !!paymentMethod;
+  setCheckoutError('coAddress', address.length >= 5 ? '' : 'Please enter a clear delivery address.'); ok = ok && address.length >= 5;
+  return ok;
+}
+
+function openCheckoutForm(method='email', items=null){
+  checkoutContext = { method: method || 'email', items: Array.isArray(items) ? items : null, source: Array.isArray(items) ? 'product' : 'cart' };
+  if(!getCheckoutItems().length){ toast('Your cart is empty'); return; }
+  if(checkoutContext.method === 'email' && (!isEmailReady() || !EMAILJS_CONFIG.orderTemplateId || EMAILJS_CONFIG.orderTemplateId.includes('YOUR_'))){
+    toast('Email checkout is not configured yet.');
+    alert('Email checkout is not configured yet. Please check your Public Key, Service ID, and Order Template ID.');
+    return;
+  }
+  renderCheckoutOrderPreview();
+  setCheckoutStatus('', '');
+  ['coName','coPhone','coEmail','coCity','coPayment','coAddress'].forEach(id=>setCheckoutError(id,''));
+  const ov = document.getElementById('checkoutFormOv');
+  const form = document.getElementById('checkoutEmailForm');
+  const title = document.getElementById('checkoutFormTitle');
+  const note = document.querySelector('#checkoutEmailForm .checkout-form-note');
+  const submit = document.getElementById('checkoutEmailSubmitBtn');
+  const emailInput = document.getElementById('coEmail');
+  const emailLabel = document.querySelector('label[for="coEmail"]');
+
+  if(title) title.textContent = checkoutContext.method === 'whatsapp' ? 'WhatsApp Checkout' : 'Secure Email Checkout';
+  if(note){
+    note.textContent = checkoutContext.method === 'whatsapp'
+      ? 'Please enter your details below. We will prepare your WhatsApp order message with your contact and delivery information before opening WhatsApp.'
+      : 'Please enter your details below. Your order will be sent securely to Dzetshal, and our team will contact you to confirm payment and delivery.';
+  }
+  if(submit) submit.textContent = checkoutContext.method === 'whatsapp' ? 'Continue to WhatsApp' : 'Place Order by Email';
+  if(emailInput) emailInput.required = checkoutContext.method === 'email';
+  if(emailLabel) emailLabel.textContent = checkoutContext.method === 'email' ? 'Email address *' : 'Email address, optional';
+
+  if(form){
+    form.reset();
+    const city = document.getElementById('coCity');
+    if(city) city.value = 'Kigali';
+  }
+  if(ov){
+    ov.classList.add('open');
+    ov.setAttribute('aria-hidden','false');
+    document.body.classList.add('checkout-open');
+    setTimeout(()=>{ const name=document.getElementById('coName'); if(name) name.focus(); }, 60);
+  }
+}
+
+function closeCheckoutForm(){
+  const ov = document.getElementById('checkoutFormOv');
+  if(ov){
+    ov.classList.remove('open');
+    ov.setAttribute('aria-hidden','true');
+  }
+  document.body.classList.remove('checkout-open');
+}
+
+function showCheckoutSuccess(orderNumber, customerName, total){
+  const meta = document.getElementById('checkoutSuccessMeta');
+  if(meta){
+    meta.innerHTML = `<strong>Order number:</strong> ${escapeHtml(orderNumber)}<br><strong>Customer:</strong> ${escapeHtml(customerName)}<br><strong>Total:</strong> ${escapeHtml(total)}<br><strong>Contact:</strong> +250 795 308 453`;
+  }
+  const ov = document.getElementById('checkoutSuccessOv');
+  if(ov){
+    ov.classList.add('open');
+    ov.setAttribute('aria-hidden','false');
+    document.body.classList.add('checkout-open');
+  }
+}
+
+function closeCheckoutSuccess(){
+  const ov = document.getElementById('checkoutSuccessOv');
+  if(ov){
+    ov.classList.remove('open');
+    ov.setAttribute('aria-hidden','true');
+  }
+  document.body.classList.remove('checkout-open');
+}
+
+function checkoutEmail(){
+  openCheckoutForm('email');
+}
+
+function checkoutProduct(sku, method){
+  const p = RAW.find(x=>x.sku===sku);
+  if(!p){ toast('Product not found'); return; }
+  if(!isInStock(sku)){ toast('This item is out of stock'); return; }
+  openCheckoutForm(method || 'email', [{sku: sku, qty: 1}]);
+}
+
+function submitCheckoutEmailForm(event){
+  event.preventDefault();
+  if(!getCheckoutItems().length){ toast('Your cart is empty'); closeCheckoutForm(); return; }
+  setCheckoutStatus('', '');
+  if(!validateCheckoutForm()){
+    setCheckoutStatus('Please correct the highlighted fields before sending your order.', 'err');
+    return;
+  }
+
+  const customerName = (document.getElementById('coName')?.value || '').trim();
+  const customerPhone = (document.getElementById('coPhone')?.value || '').trim();
+  const customerEmail = (document.getElementById('coEmail')?.value || '').trim().toLowerCase();
+  const city = (document.getElementById('coCity')?.value || '').trim();
+  const address = (document.getElementById('coAddress')?.value || '').trim();
+  const paymentMethod = (document.getElementById('coPayment')?.value || '').trim();
+  const notes = (document.getElementById('coNotes')?.value || '').trim();
+
+  const order = buildOrderSummary();
+  const orderNumber = createOrderNumber();
+  const orderDate = new Date().toLocaleString();
+  const cartText = order.lines.join('\n');
+  const cartHtml = order.lines.map(line=>`<div style="padding:8px 0;border-bottom:1px solid #eee">${escapeHtml(line)}</div>`).join('');
+  const cleanHtmlMessage = `
+    <h2 style="color:#224C44;margin:0 0 12px">New Dzetshal Order</h2>
+    <p><strong>Order number:</strong> ${escapeHtml(orderNumber)}</p>
+    <p><strong>Customer:</strong> ${escapeHtml(customerName)}<br>
+    <strong>Email:</strong> ${escapeHtml(customerEmail)}<br>
+    <strong>Phone:</strong> ${escapeHtml(customerPhone)}<br>
+    <strong>City:</strong> ${escapeHtml(city)}<br>
+    <strong>Address:</strong> ${escapeHtml(address)}</p>
+    <h3 style="color:#224C44">Items</h3>
+    ${cartHtml}
+    <p style="font-size:16px"><strong>Total:</strong> ${escapeHtml(fmt(order.total))}</p>
+    <p><strong>Payment:</strong> ${escapeHtml(paymentMethod)}<br>
+    <strong>Notes:</strong> ${escapeHtml(notes || 'No notes provided')}</p>`;
+
+  const params = {
+    customer_name: customerName,
+    customer_email: customerEmail,
+    email: customerEmail,
+    reply_to: customerEmail,
+    customer_phone: customerPhone,
+    phone: customerPhone,
+    city: city,
+    country: 'Rwanda',
+    address: address,
+    notes: notes || 'No notes provided',
+    cart: cartText,
+    cart_html: cleanHtmlMessage,
+    order_items: cartText,
+    total: fmt(order.total),
+    order_total: fmt(order.total),
+    payment_method: paymentMethod,
+    checkout_method: 'Email checkout',
+    order_number: orderNumber,
+    date: orderDate,
+    owner_email: 'dzetshalweb@gmail.com',
+    to_email: 'dzetshalweb@gmail.com',
+    from_name: 'Dzetshal Website',
+    subject: `New Order ${orderNumber} - ${customerName}`,
+    title: `New Order ${orderNumber}`,
+    message: `New Dzetshal order ${orderNumber}\n\nCustomer: ${customerName}\nEmail: ${customerEmail}\nPhone: ${customerPhone}\nCity: ${city}\nAddress: ${address}\nNotes: ${notes || 'No notes provided'}\n\nOrder:\n${cartText}\n\nTotal: ${fmt(order.total)}\nPayment: ${paymentMethod}`
+  };
+
+  const submitBtn = document.getElementById('checkoutEmailSubmitBtn');
+  const cancelBtn = document.querySelector('#checkoutEmailForm .btn-ol');
+  const originalText = submitBtn ? submitBtn.textContent : '';
+
+  if(checkoutContext.method === 'whatsapp'){
+    const whatsappText = encodeURIComponent(
+      `Hello Dzetshal! I would like to place an order.
+
+` +
+      `Order number: ${orderNumber}
+` +
+      `Name: ${customerName}
+` +
+      `Phone: ${customerPhone}
+` +
+      `Email: ${customerEmail || 'Not provided'}
+` +
+      `City: ${city}
+` +
+      `Delivery address: ${address}
+` +
+      `Payment method: ${paymentMethod}
+` +
+      `Notes: ${notes || 'No notes provided'}
+
+` +
+      `Order items:
+${cartText}
+
+` +
+      `Total: ${fmt(order.total)}
+
+Please confirm availability, payment and delivery details. Thank you!`
+    );
+    window.open(`https://wa.me/250795308453?text=${whatsappText}`, '_blank');
+    toast('WhatsApp checkout opened.');
+    if(checkoutContext.source === 'cart'){
+      cart = [];
+      saveCart();
+      renderCartBadge();
+      renderCartDrawer();
+      closeCart();
+    }
+    closeCheckoutForm();
+    showCheckoutSuccess(orderNumber, customerName, fmt(order.total));
+    return;
+  }
+
+  if(submitBtn){ submitBtn.disabled = true; submitBtn.classList.add('btn-loading'); submitBtn.textContent = 'Sending Order'; }
+  if(cancelBtn) cancelBtn.disabled = true;
+  setCheckoutStatus('Sending your order securely. Please wait...', 'ok');
+
+  /*
+     Send the order to TWO recipients using the same Email order template:
+     1) Store copy: customer_email is temporarily changed to the shop email.
+        This works when the Email template's "To Email" field is {{customer_email}}.
+     2) Customer copy: customer_email stays as the customer's address.
+
+     IMPORTANT: In Email, the Order template should have:
+       To Email: {{customer_email}}
+       Reply To: {{reply_to}}
+     This lets the website control whether the copy goes to the shop or the customer.
+  */
+  const shopEmail = 'dzetshalweb@gmail.com';
+  const ownerParams = {
+    ...params,
+    customer_email: shopEmail,
+    email: shopEmail,
+    to_email: shopEmail,
+    reply_to: customerEmail,
+    recipient_type: 'store',
+    subject: `New Order ${orderNumber} - ${customerName}`,
+    title: `New Order ${orderNumber}`,
+    message: `New Dzetshal order ${orderNumber}
+
+Customer: ${customerName}
+Email: ${customerEmail}
+Phone: ${customerPhone}
+City: ${city}
+Address: ${address}
+Notes: ${notes || 'No notes provided'}
+
+Order:
+${cartText}
+
+Total: ${fmt(order.total)}
+Payment: ${paymentMethod}`
+  };
+
+  const customerParams = {
+    ...params,
+    customer_email: customerEmail,
+    email: customerEmail,
+    to_email: customerEmail,
+    reply_to: shopEmail,
+    recipient_type: 'customer',
+    subject: `Thank you for your Dzetshal order ${orderNumber}`,
+    title: `Order received ${orderNumber}`,
+    message: `Hello ${customerName},
+
+Thank you for shopping with Dzetshal - Jardin de Beaute.
+
+We have received your order and our team will contact you shortly to confirm availability, payment and delivery.
+
+Order number: ${orderNumber}
+
+Order:
+${cartText}
+
+Total: ${fmt(order.total)}
+
+Need help? WhatsApp: +250 795 308 453
+Email: ${shopEmail}`
+  };
+
+  const emailJobs = [
+    emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.orderTemplateId, ownerParams)
+  ];
+  if(customerEmail){
+    emailJobs.push(emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.orderTemplateId, customerParams));
+  }
+
+  Promise.all(emailJobs)
+    .then(()=>{
+      toast('Order sent successfully.');
+      if(checkoutContext.source === 'cart'){
+        cart = [];
+        saveCart();
+        renderCartBadge();
+        renderCartDrawer();
+        closeCart();
+      }
+      closeCheckoutForm();
+      showCheckoutSuccess(orderNumber, customerName, fmt(order.total));
+    })
+    .catch((error)=>{
+      console.error('Email order error:', error);
+      setCheckoutStatus('We could not send your order by email. Please try again or use WhatsApp checkout.', 'err');
+      toast('Email failed. Please try again.');
+    })
+    .finally(()=>{
+      if(submitBtn){ submitBtn.disabled = false; submitBtn.classList.remove('btn-loading'); submitBtn.textContent = originalText || 'Send Order'; }
+      if(cancelBtn) cancelBtn.disabled = false;
+    });
+}
+
+/* Close checkout form when clicking outside the box */
+document.addEventListener('click', function(e){
+  const ov = document.getElementById('checkoutFormOv');
+  const successOv = document.getElementById('checkoutSuccessOv');
+  if(ov && ov.classList.contains('open') && e.target === ov){ closeCheckoutForm(); }
+  if(successOv && successOv.classList.contains('open') && e.target === successOv){ closeCheckoutSuccess(); }
+});
+
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){
+    closeCheckoutForm();
+    closeCheckoutSuccess();
+  }
+});
 
 
 function toggleWish(sku){
@@ -3865,7 +4446,11 @@ function openModal(sku, groupKey){
           : `<button class="btn btn-g" style="width:100%;justify-content:center" onclick="addToCart('${mp.sku}');closeModal()">
               <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="margin-right:6px"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
               Add to Cart — ${fmt(mp.price)}
-            </button>`
+            </button>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <button class="btn btn-ol" style="width:100%;justify-content:center;padding-left:10px;padding-right:10px" onclick="checkoutProduct('${mp.sku}','whatsapp')">Checkout WhatsApp</button>
+              <button class="btn btn-ol" style="width:100%;justify-content:center;padding-left:10px;padding-right:10px" onclick="checkoutProduct('${mp.sku}','email')">Checkout Email</button>
+            </div>`
         }
         <button class="btn btn-ol" style="width:100%;justify-content:center" onclick="toggleWish('${mp.sku}')">♡ Add to Wishlist</button>
       </div>`;
@@ -3875,7 +4460,11 @@ function openModal(sku, groupKey){
     if(sf){
       sf.innerHTML = oos
         ? `<button class="btn btn-ol" style="width:100%;justify-content:center;cursor:not-allowed;opacity:.6" disabled>Out of Stock</button>`
-        : `<button class="btn btn-g" style="width:100%;justify-content:center" onclick="addToCart('${mp.sku}');closeModal()">
+        : `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <button class="btn btn-ol" style="width:100%;justify-content:center;padding-left:8px;padding-right:8px" onclick="checkoutProduct('${mp.sku}','whatsapp')">WhatsApp</button>
+            <button class="btn btn-ol" style="width:100%;justify-content:center;padding-left:8px;padding-right:8px" onclick="checkoutProduct('${mp.sku}','email')">Email</button>
+          </div>
+          <button class="btn btn-g" style="width:100%;justify-content:center" onclick="addToCart('${mp.sku}');closeModal()">
             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="margin-right:6px"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
             Add to Cart — ${fmt(mp.price)}
           </button>`;
@@ -4024,41 +4613,80 @@ function closeModal(){
 ================================================================ */
 function submitContact(e){
   e.preventDefault();
+  const form = e.target;
   const name=document.getElementById('fn').value.trim();
-  const email=document.getElementById('fe').value.trim();
+  const email=document.getElementById('fe').value.trim().toLowerCase();
   const phone=document.getElementById('fp').value.trim();
   const msg=document.getElementById('fm').value.trim();
+  const method=(document.querySelector('input[name="contactMethod"]:checked')||{}).value || 'emailjs';
   let ok=true;
   ['fn-e','fe-e','fm-e'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
   if(!name){ const el=document.getElementById('fn-e'); el.textContent='Name is required'; el.style.display='block'; ok=false; }
   if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ const el=document.getElementById('fe-e'); el.textContent='Valid email required'; el.style.display='block'; ok=false; }
   if(!msg||msg.length<10){ const el=document.getElementById('fm-e'); el.textContent='Please write at least 10 characters'; el.style.display='block'; ok=false; }
   if(!ok)return;
-  const submitBtn=e.target.querySelector('button[type="submit"]');
-  if(submitBtn){submitBtn.disabled=true;submitBtn.textContent='Sending…';}
-  const formData=new FormData();
-  formData.append('name',name);
-  formData.append('email',email);
-  formData.append('phone',phone||'Not provided');
-  formData.append('message',msg);
-  formData.append('_subject','New message from Dzetshal website — '+name);
-  formData.append('_captcha','false');
-  formData.append('_template','table');
-  formData.append('_replyto',email);
-  const resetBtn=()=>{if(submitBtn){submitBtn.disabled=false;submitBtn.innerHTML='<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:6px"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Send Message';}};
-  fetch('https://formsubmit.co/ajax/dzetshal@gmail.com',{method:'POST',headers:{'Accept':'application/json'},body:formData})
-  .then(r=>r.json())
-  .then(data=>{
-    const fmsg=document.getElementById('fmsg');
-    if(data.success==='true'||data.success===true){
-      fmsg.innerHTML='<strong>✓ Message sent!</strong> Thank you '+name+', we will get back to you shortly.';
-      fmsg.className='fmsg ok';fmsg.style.display='block';
-      e.target.reset();
-    } else { _sendViaWhatsApp(name,email,phone,msg); }
+
+  const submitBtn=form.querySelector('button[type="submit"]');
+  const fmsg=document.getElementById('fmsg');
+  const resetBtn=()=>{if(submitBtn){submitBtn.disabled=false;submitBtn.classList.remove('btn-loading');submitBtn.innerHTML='<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:6px"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Send Message';} form.classList.remove('contact-loading');};
+  if(submitBtn){submitBtn.disabled=true;submitBtn.classList.add('btn-loading');submitBtn.textContent='Sending Message';}
+  form.classList.add('contact-loading');
+
+  if(method==='whatsapp'){
+    _sendViaWhatsApp(name,email,phone,msg);
+    fmsg.innerHTML='<strong>WhatsApp opened.</strong> Please press send in WhatsApp to submit your message.';
+    fmsg.className='fmsg ok';fmsg.style.display='block';
+    resetBtn();
+    return;
+  }
+
+  if(!isEmailReady() || !EMAILJS_CONFIG.contactTemplateId || EMAILJS_CONFIG.contactTemplateId.includes('YOUR_')){
+    fmsg.innerHTML='<strong>Email is not fully configured.</strong> Please use WhatsApp or update the Email settings.';
+    fmsg.className='fmsg err';fmsg.style.display='block';
+    resetBtn();
+    return;
+  }
+
+  const htmlMessage = `
+    <h2 style="color:#224C44;margin:0 0 12px">New Contact Message</h2>
+    <p><strong>Name:</strong> ${escapeHtml(name)}<br>
+    <strong>Email:</strong> ${escapeHtml(email)}<br>
+    <strong>Phone:</strong> ${escapeHtml(phone || 'Not provided')}</p>
+    <p style="white-space:pre-line">${escapeHtml(msg)}</p>`;
+  const params={
+    to_email:'dzetshalweb@gmail.com',
+    owner_email:'dzetshalweb@gmail.com',
+    email:email,
+    from_name:'Dzetshal Website',
+    reply_to:email,
+    name:name,
+    customer_name:name,
+    customer_email:email,
+    customer_phone:phone||'Not provided',
+    phone:phone||'Not provided',
+    title:'Contact form message',
+    message:msg,
+    html_message:htmlMessage,
+    date:new Date().toLocaleString(),
+    subject:'New message from Dzetshal website — '+name
+  };
+
+  emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.contactTemplateId, params)
+  .then(()=>{
+    fmsg.innerHTML='<strong>✓ Message sent successfully.</strong> Thank you '+escapeHtml(name)+', we will get back to you shortly.';
+    fmsg.className='fmsg ok';fmsg.style.display='block';
+    form.reset();
+    const emailChoice=document.querySelector('input[name="contactMethod"][value="emailjs"]');
+    if(emailChoice) emailChoice.checked=true;
     resetBtn();
     setTimeout(()=>{fmsg.style.display='none';},10000);
   })
-  .catch(()=>{_sendViaWhatsApp(name,email,phone,msg);resetBtn();});
+  .catch((error)=>{
+    console.error('Email contact error:', error);
+    fmsg.innerHTML='<strong>Email failed.</strong> Please try again or choose WhatsApp.';
+    fmsg.className='fmsg err';fmsg.style.display='block';
+    resetBtn();
+  });
 }
 function _sendViaWhatsApp(name,email,phone,msg){
   var waMsg=encodeURIComponent('New message from Dzetshal website\n\nName: '+name+'\nEmail: '+email+(phone?'\nPhone: '+phone:'')+'\n\nMessage:\n'+msg);
