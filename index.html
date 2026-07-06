@@ -1247,6 +1247,100 @@ body.modal-open #nav{z-index:100 !important;}
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL='https://tnaigjnroawduaznmmuc.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRuYWlnam5yb2F3ZHVhem5tbXVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4Mjk3NTQsImV4cCI6MjA5ODQwNTc1NH0.vRFpibtvIIfAHwBb4ADHEwrjeT70K0P42nCCf0wIi9Q';
+window.supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+async function saveOrderToSupabase(order){
+  if(!window.supabaseClient) throw new Error('Supabase client is not available.');
+  return await window.supabaseClient.from('orders').insert(order);
+}
+async function generateOrderNumberFromSupabase(){
+  try{
+    if(window.supabaseClient){
+      const { data, error } = await window.supabaseClient.rpc('generate_order_number');
+      if(!error && data) return data;
+    }
+  }catch(err){
+    console.warn('Supabase order number generator unavailable, using local fallback.', err);
+  }
+  return createOrderNumber();
+}
+function buildSupabaseOrderPayload(details){
+  const items = getCheckoutItems().map(function(c){
+    const p = RAW.find(x=>x.sku===c.sku) || {};
+    return {
+      sku: c.sku,
+      product_id: p.id || null,
+      brand: p.brand || '',
+      name: p.name || '',
+      price: Number(p.price || 0),
+      quantity: Number(c.qty || 1),
+      line_total: Number(p.price || 0) * Number(c.qty || 1)
+    };
+  });
+  return {
+    order_number: details.orderNumber,
+    customer_name: details.customerName,
+    customer_email: details.customerEmail || null,
+    customer_phone: details.customerPhone,
+    country: details.country || 'Rwanda',
+    city: details.city,
+    address: details.address,
+    items: items,
+    total: Number(details.total || 0),
+    payment_method: details.paymentMethod,
+    checkout_method: details.checkoutMethod,
+    status: 'pending'
+  };
+}
+async function loadProductsFromSupabase(){
+  return await window.supabaseClient
+    .from('products')
+    .select('*')
+    .eq('status','active')
+    .order('brand',{ascending:true})
+    .order('name',{ascending:true});
+}
+</script>
+
+
+<style>
+/* Final zoom fix: keep desktop magnifier, but never leave orphan squares on the page. */
+#gz-lens,#gz-result{
+  display:none;
+  pointer-events:none;
+}
+#gz-lens{
+  position:fixed;
+  width:90px;
+  height:90px;
+  border:2px solid #224C44;
+  border-radius:4px;
+  background:rgba(34,76,68,.07);
+  z-index:9999;
+  box-sizing:border-box;
+}
+#gz-result{
+  position:fixed;
+  width:340px;
+  height:420px;
+  border:1px solid #ddd;
+  border-radius:8px;
+  background:#f7f5f2;
+  background-repeat:no-repeat;
+  box-shadow:0 8px 40px rgba(0,0,0,.2);
+  z-index:9998;
+  overflow:hidden;
+}
+.mimg-main .mgslide img{cursor:crosshair;}
+@media(max-width:900px){
+  #gz-lens,#gz-result{display:none !important;}
+  .mimg-main .mgslide img{cursor:default;}
+}
+</style>
+
 </head>
 <body>
 
@@ -2197,7 +2291,7 @@ body.modal-open #nav{z-index:100 !important;}
 /* ================================================================
    DATA
 ================================================================ */
-const RAW = [
+let RAW = [
   {sku:"3616303458904",brand:"Adidas",name:"Adidas After Sport Shower Gel Shampoo 400 ml",price:9700,type:"Body",size:"400ml",gender:"unisex",desc:"Indulgent body care.",featured:false},
   {sku:"3616303441562",brand:"Adidas",name:"Adidas After Sports Deodorants Spray 150ML",price:10000,type:"Deo",size:"150ml",gender:"unisex",desc:"Long-lasting deodorant protection.",featured:false},
   {sku:"3616303440060",brand:"Adidas",name:"Adidas Anti Perspirant Deodorants Spray 200ML",price:12000,type:"Deo",size:"200ml",gender:"unisex",desc:"Long-lasting deodorant protection.",featured:false},
@@ -2811,6 +2905,8 @@ function getImg(sku){
   } else if(val && typeof val === 'string' && val.length > 0){
     return val;
   }
+  const supaProduct = (typeof RAW !== 'undefined' && Array.isArray(RAW)) ? RAW.find(p => String(p.sku) === String(sku)) : null;
+  if(supaProduct && supaProduct.image_url) return supaProduct.image_url;
   if(typeof _BAKED_IMAGES !== "undefined" && _BAKED_IMAGES[sku]) return _BAKED_IMAGES[sku];
   return null;
 }
@@ -2896,8 +2992,54 @@ function isInStock(sku){
 
 const fmt = n => 'RWF ' + Math.round(n).toLocaleString();
 
+function normalizeSupabaseProduct(p){
+  const sku = String(p.sku || p.id || '').trim();
+  return {
+    id: p.id || sku,
+    sku: sku,
+    brand: p.brand || 'Unknown',
+    name: p.name || 'Untitled product',
+    price: Number(p.price || 0),
+    type: p.type || 'EDP',
+    size: p.size || '',
+    gender: p.gender || 'unisex',
+    desc: p.description || p.desc || '',
+    story: p.story || '',
+    top_notes: p.top_notes || '',
+    middle_notes: p.middle_notes || '',
+    base_notes: p.base_notes || '',
+    image_url: p.image_url || '',
+    featured: !!p.featured,
+    stock: Number(p.stock ?? 999),
+    status: p.status || 'active'
+  };
+}
+
+async function hydrateProductsFromSupabase(){
+  if(!window.supabaseClient) return;
+  try{
+    const { data, error } = await loadProductsFromSupabase();
+    if(error) throw error;
+    if(Array.isArray(data) && data.length){
+      RAW = data.map(normalizeSupabaseProduct);
+      RAW.forEach(function(p){
+        if(p.image_url && p.sku && !imgStore[p.sku]){
+          imgStore[p.sku] = p.image_url;
+        }
+        if(p.sku && typeof stkStore[p.sku] === 'undefined'){
+          stkStore[p.sku] = { qty: Number(p.stock || 0), inStock: Number(p.stock || 0) > 0 };
+        }
+      });
+      console.log('Loaded products from Supabase:', RAW.length);
+    }
+  }catch(err){
+    console.warn('Supabase product loading failed. Using local fallback products.', err);
+  }
+}
+
 async function init(){
   await loadStorage();
+  await hydrateProductsFromSupabase();
   buildBrandPills();
   buildTypePills();
   renderGrid();
@@ -3593,7 +3735,7 @@ function checkoutProduct(sku, method){
   openCheckoutForm(method || 'email', [{sku: sku, qty: 1}]);
 }
 
-function submitCheckoutEmailForm(event){
+async function submitCheckoutEmailForm(event){
   event.preventDefault();
   if(!getCheckoutItems().length){ toast('Your cart is empty'); closeCheckoutForm(); return; }
   setCheckoutStatus('', '');
@@ -3611,7 +3753,7 @@ function submitCheckoutEmailForm(event){
   const notes = (document.getElementById('coNotes')?.value || '').trim();
 
   const order = buildOrderSummary();
-  const orderNumber = createOrderNumber();
+  const orderNumber = await generateOrderNumberFromSupabase();
   const orderDate = new Date().toLocaleString();
   const cartText = order.lines.join('\n');
   const cartHtml = order.lines.map(line=>`<div style="padding:8px 0;border-bottom:1px solid #eee">${escapeHtml(line)}</div>`).join('');
@@ -3661,6 +3803,38 @@ function submitCheckoutEmailForm(event){
   const cancelBtn = document.querySelector('#checkoutEmailForm .btn-ol');
   const originalText = submitBtn ? submitBtn.textContent : '';
 
+  const supabaseOrderPayload = buildSupabaseOrderPayload({
+    orderNumber: orderNumber,
+    customerName: customerName,
+    customerEmail: customerEmail,
+    customerPhone: customerPhone,
+    country: 'Rwanda',
+    city: city,
+    address: address,
+    total: order.total,
+    paymentMethod: paymentMethod,
+    checkoutMethod: checkoutContext.method === 'whatsapp' ? 'WhatsApp checkout' : 'Email checkout'
+  });
+
+  if(submitBtn){ submitBtn.disabled = true; submitBtn.classList.add('btn-loading'); submitBtn.textContent = checkoutContext.method === 'whatsapp' ? 'Preparing WhatsApp' : 'Saving Order'; }
+  if(cancelBtn) cancelBtn.disabled = true;
+  setCheckoutStatus('Saving your order securely. Please wait...', 'ok');
+
+  let savedOrder = null;
+  try{
+    const { data, error } = await saveOrderToSupabase(supabaseOrderPayload);
+    if(error) throw error;
+    savedOrder = data;
+    console.log('Order saved to Supabase:', savedOrder);
+  }catch(error){
+    console.error('Supabase order save error:', error);
+    setCheckoutStatus('We could not save your order. Please try again or contact us on WhatsApp.', 'err');
+    toast('Order was not saved. Please try again.');
+    if(submitBtn){ submitBtn.disabled = false; submitBtn.classList.remove('btn-loading'); submitBtn.textContent = originalText || 'Send Order'; }
+    if(cancelBtn) cancelBtn.disabled = false;
+    return;
+  }
+
   if(checkoutContext.method === 'whatsapp'){
     const whatsappText = encodeURIComponent(
       `Hello Dzetshal! I would like to place an order.
@@ -3702,12 +3876,13 @@ Please confirm availability, payment and delivery details. Thank you!`
     }
     closeCheckoutForm();
     showCheckoutSuccess(orderNumber, customerName, fmt(order.total));
+    if(submitBtn){ submitBtn.disabled = false; submitBtn.classList.remove('btn-loading'); submitBtn.textContent = originalText || 'Continue to WhatsApp'; }
+    if(cancelBtn) cancelBtn.disabled = false;
     return;
   }
 
-  if(submitBtn){ submitBtn.disabled = true; submitBtn.classList.add('btn-loading'); submitBtn.textContent = 'Sending Order'; }
-  if(cancelBtn) cancelBtn.disabled = true;
-  setCheckoutStatus('Sending your order securely. Please wait...', 'ok');
+  if(submitBtn) submitBtn.textContent = 'Sending Email';
+  setCheckoutStatus('Order saved. Sending email notification now...', 'ok');
 
   /*
      Send the order to TWO recipients using the same Email order template:
@@ -3730,6 +3905,7 @@ Please confirm availability, payment and delivery details. Thank you!`
     recipient_type: 'store',
     subject: `New Order ${orderNumber} - ${customerName}`,
     title: `New Order ${orderNumber}`,
+    supabase_order_id: savedOrder && savedOrder.id ? savedOrder.id : '',
     message: `New Dzetshal order ${orderNumber}
 
 Customer: ${customerName}
@@ -3869,66 +4045,128 @@ function renderWishDrawer(){
 }
 
 
-/* Fix: reattach modal zoom after size/variant changes */
-function DZ_attachModalZoom(){
+/* Final zoom helpers: keep the magnifier but clean it up reliably. */
+function DZ_hideZoomElements(){
+  const lens = document.getElementById('gz-lens');
+  const result = document.getElementById('gz-result');
+  if(lens){ lens.style.display = 'none'; }
+  if(result){ result.style.display = 'none'; result.style.backgroundImage = ''; }
+}
+function DZ_destroyZoomElements(){
+  DZ_hideZoomElements();
+  ['gz-lens','gz-result'].forEach(function(id){
+    const el = document.getElementById(id);
+    if(el && el.parentNode) el.parentNode.removeChild(el);
+  });
+}
+function DZ_detachModalZoom(){
   const mimg = document.getElementById('mimg');
-  if(!mimg) return;
+  if(mimg){
+    if(mimg._zoomTarget && mimg._zoomHandler) mimg._zoomTarget.removeEventListener('mousemove', mimg._zoomHandler);
+    if(mimg._zoomTarget && mimg._zoomLeave)   mimg._zoomTarget.removeEventListener('mouseleave', mimg._zoomLeave);
+    mimg._zoomHandler = null;
+    mimg._zoomLeave   = null;
+    mimg._zoomTarget  = null;
+  }
+  DZ_destroyZoomElements();
+}
+function DZ_attachModalZoom(){
+  DZ_detachModalZoom();
+
+  if(window.matchMedia && window.matchMedia('(max-width: 900px)').matches){
+    return;
+  }
+
+  const modal = document.getElementById('mov');
+  const mimg = document.getElementById('mimg');
+  if(!modal || !modal.classList.contains('open') || !mimg) return;
+
   const mimgMain = mimg.querySelector('.mimg-main') || mimg;
+  if(!mimgMain) return;
 
-  // Remove previous listeners from the old image container before attaching to the new one
-  if(mimg._zoomTarget && mimg._zoomHandler) mimg._zoomTarget.removeEventListener('mousemove', mimg._zoomHandler);
-  if(mimg._zoomTarget && mimg._zoomLeave)   mimg._zoomTarget.removeEventListener('mouseleave', mimg._zoomLeave);
-  mimg._zoomTarget = mimgMain;
+  mimgMain.style.position = 'relative';
+  mimgMain.style.overflow = 'hidden';
 
-  // Use body-level fixed elements so modal overflow never clips the zoom preview
-  let lens = document.getElementById('gz-lens');
-  let result = document.getElementById('gz-result');
-  if(!lens){
-    lens = document.createElement('div');
-    lens.id = 'gz-lens';
-    lens.style.cssText = 'position:fixed;width:90px;height:90px;border:2px solid #224C44;border-radius:4px;background:rgba(34,76,68,.07);pointer-events:none;display:none;z-index:9999;box-sizing:border-box;';
-    document.body.appendChild(lens);
-  }
-  if(!result){
-    result = document.createElement('div');
-    result.id = 'gz-result';
-    result.style.cssText = 'position:fixed;width:340px;height:420px;border:1px solid #ddd;border-radius:8px;background:#f7f5f2;background-repeat:no-repeat;box-shadow:0 8px 40px rgba(0,0,0,.2);pointer-events:none;display:none;z-index:9998;overflow:hidden;';
-    document.body.appendChild(result);
-  }
+  let lens = document.createElement('div');
+  lens.id = 'gz-lens';
+  lens.style.cssText = [
+    'position:absolute',
+    'width:82px',
+    'height:82px',
+    'border:2px solid #224C44',
+    'border-radius:4px',
+    'background:rgba(34,76,68,.06)',
+    'pointer-events:none',
+    'display:none',
+    'z-index:25',
+    'box-sizing:border-box',
+    'box-shadow:0 0 0 1px rgba(255,255,255,.55)'
+  ].join(';');
+  mimgMain.appendChild(lens);
+
+  let result = document.createElement('div');
+  result.id = 'gz-result';
+  result.style.cssText = [
+    'position:fixed',
+    'width:340px',
+    'height:420px',
+    'border:1px solid #ddd',
+    'border-radius:8px',
+    'background:#f7f5f2',
+    'background-repeat:no-repeat',
+    'box-shadow:0 8px 40px rgba(0,0,0,.2)',
+    'pointer-events:none',
+    'display:none',
+    'z-index:9998',
+    'overflow:hidden'
+  ].join(';');
+  document.body.appendChild(result);
 
   function getActiveImg(){
     const activeSlide = mimgMain.querySelector('.mgslide.active') || mimgMain.querySelector('.mgslide[style*="flex"]');
-    if(activeSlide) return activeSlide.querySelector('img:not([style*="display: none"])') || activeSlide.querySelector('img');
-    return mimgMain.querySelector('img:not([style*="display: none"])') || mimgMain.querySelector('img');
+    if(activeSlide) return activeSlide.querySelector('img');
+    return mimgMain.querySelector('img');
   }
+
+  function hide(){ DZ_hideZoomElements(); }
 
   mimg._zoomHandler = function(e){
     const img = getActiveImg();
-    if(!img || !img.complete || !img.naturalWidth) return;
+    if(!img || !img.complete || !img.naturalWidth){ hide(); return; }
 
     const imgRect = img.getBoundingClientRect();
+    const mainRect = mimgMain.getBoundingClientRect();
     const mx = e.clientX - imgRect.left;
     const my = e.clientY - imgRect.top;
 
+    // Only activate over the real visible image, not the white margins.
     if(mx < 0 || my < 0 || mx > imgRect.width || my > imgRect.height){
-      lens.style.display = 'none';
-      result.style.display = 'none';
+      hide();
       return;
     }
 
-    const lensW = 90, lensH = 90;
-    const ZOOM  = 3;
-    const lensX = Math.max(imgRect.left, Math.min(e.clientX - lensW/2, imgRect.right  - lensW));
-    const lensY = Math.max(imgRect.top,  Math.min(e.clientY - lensH/2, imgRect.bottom - lensH));
-    lens.style.left = lensX + 'px';
-    lens.style.top = lensY + 'px';
+    const lensW = Math.min(82, Math.max(48, imgRect.width * 0.22));
+    const lensH = Math.min(82, Math.max(48, imgRect.height * 0.22));
+    const ZOOM = 3;
+
+    lens.style.width = lensW + 'px';
+    lens.style.height = lensH + 'px';
+
+    // Lens is absolute inside .mimg-main and clipped by overflow:hidden.
+    const lensViewportX = Math.max(imgRect.left, Math.min(e.clientX - lensW/2, imgRect.right - lensW));
+    const lensViewportY = Math.max(imgRect.top,  Math.min(e.clientY - lensH/2, imgRect.bottom - lensH));
+    lens.style.left = (lensViewportX - mainRect.left) + 'px';
+    lens.style.top  = (lensViewportY - mainRect.top) + 'px';
     lens.style.display = 'block';
 
-    const mainRect = mimgMain.getBoundingClientRect();
-    const rW = 340, rH = Math.min(420, mainRect.height || 420);
-    let rX = mainRect.right + 10;
-    if(rX + rW > window.innerWidth - 12) rX = Math.max(12, mainRect.left - rW - 10);
-    const rY = Math.max(12, Math.min(mainRect.top, window.innerHeight - rH - 12));
+    // Result panel appears beside the image column, but stays inside viewport.
+    const rW = Math.min(340, Math.max(260, window.innerWidth - 32));
+    const rH = Math.min(420, Math.max(260, mainRect.height), window.innerHeight - 32);
+    let rX = mainRect.right + 12;
+    if(rX + rW > window.innerWidth - 12) rX = mainRect.left - rW - 12;
+    if(rX < 12) rX = Math.max(12, window.innerWidth - rW - 12);
+    let rY = Math.max(12, Math.min(mainRect.top, window.innerHeight - rH - 12));
+
     result.style.left = rX + 'px';
     result.style.top = rY + 'px';
     result.style.width = rW + 'px';
@@ -3939,19 +4177,21 @@ function DZ_attachModalZoom(){
     const bgH = imgRect.height * ZOOM;
     const ratioX = mx / imgRect.width;
     const ratioY = my / imgRect.height;
-    result.style.backgroundImage = `url("${img.currentSrc || img.src}")`;
+    const bgX = -(ratioX * bgW - rW / 2);
+    const bgY = -(ratioY * bgH - rH / 2);
+
+    result.style.backgroundImage = `url('${img.src}')`;
     result.style.backgroundSize = `${bgW}px ${bgH}px`;
-    result.style.backgroundPosition = `${-(ratioX * bgW - rW / 2)}px ${-(ratioY * bgH - rH / 2)}px`;
+    result.style.backgroundPosition = `${bgX}px ${bgY}px`;
   };
 
-  mimg._zoomLeave = function(){
-    lens.style.display = 'none';
-    result.style.display = 'none';
-  };
-
+  mimg._zoomLeave = hide;
+  mimg._zoomTarget = mimgMain;
   mimgMain.addEventListener('mousemove', mimg._zoomHandler);
   mimgMain.addEventListener('mouseleave', mimg._zoomLeave);
 }
+window.addEventListener('resize', DZ_hideZoomElements);
+window.addEventListener('scroll', DZ_hideZoomElements, true);
 
 /* ================================================================
    MODAL
@@ -4482,95 +4722,7 @@ function openModal(sku, groupKey){
   document.body.style.overflow='hidden';
 
   // Attach magnifier AFTER gallery HTML is in the DOM
-  setTimeout(function(){
-    const mimg = document.getElementById('mimg');
-    if(!mimg) return;
-    const mimgMain = mimg.querySelector('.mimg-main') || mimg;
-
-    // Remove previous listeners
-    if(mimg._zoomTarget && mimg._zoomHandler) mimg._zoomTarget.removeEventListener('mousemove', mimg._zoomHandler);
-    if(mimg._zoomTarget && mimg._zoomLeave)   mimg._zoomTarget.removeEventListener('mouseleave', mimg._zoomLeave);
-    mimg._zoomTarget = mimgMain;
-
-    // Use body-level fixed elements so overflow:hidden never clips them
-    let lens = document.getElementById('gz-lens');
-    let result = document.getElementById('gz-result');
-    if(!lens){
-      lens = document.createElement('div');
-      lens.id = 'gz-lens';
-      lens.style.cssText = 'position:fixed;width:90px;height:90px;border:2px solid #224C44;border-radius:4px;background:rgba(34,76,68,.07);pointer-events:none;display:none;z-index:9999;box-sizing:border-box;';
-      document.body.appendChild(lens);
-    }
-    if(!result){
-      result = document.createElement('div');
-      result.id = 'gz-result';
-      result.style.cssText = 'position:fixed;width:340px;height:420px;border:1px solid #ddd;border-radius:8px;background:#f7f5f2;background-repeat:no-repeat;box-shadow:0 8px 40px rgba(0,0,0,.2);pointer-events:none;display:none;z-index:9998;overflow:hidden;';
-      document.body.appendChild(result);
-    }
-
-    function getActiveImg(){
-      const activeSlide = mimgMain.querySelector('.mgslide.active') || mimgMain.querySelector('.mgslide[style*="flex"]');
-      if(activeSlide) return activeSlide.querySelector('img');
-      return mimgMain.querySelector('img');
-    }
-
-    mimg._zoomHandler = function(e){
-      const img = getActiveImg();
-      if(!img || !img.complete || !img.naturalWidth) return;
-
-      const imgRect = img.getBoundingClientRect();
-      const mx = e.clientX - imgRect.left;
-      const my = e.clientY - imgRect.top;
-
-      // Only show when cursor is over the actual image pixels
-      if(mx < 0 || my < 0 || mx > imgRect.width || my > imgRect.height){
-        lens.style.display = 'none';
-        result.style.display = 'none';
-        return;
-      }
-
-      const lensW = 90, lensH = 90;
-      const ZOOM  = 3;
-
-      // Lens: fixed position, centred on cursor, clamped inside image bounds
-      const lensX = Math.max(imgRect.left, Math.min(e.clientX - lensW/2, imgRect.right  - lensW));
-      const lensY = Math.max(imgRect.top,  Math.min(e.clientY - lensH/2, imgRect.bottom - lensH));
-      lens.style.left    = lensX + 'px';
-      lens.style.top     = lensY + 'px';
-      lens.style.display = 'block';
-
-      // Result panel: appears to the right of the modal image column
-      const mainRect = mimgMain.getBoundingClientRect();
-      const rW = 340, rH = Math.min(420, mainRect.height);
-      const rX = mainRect.right + 10;
-      const rY = mainRect.top;
-      result.style.left    = rX + 'px';
-      result.style.top     = rY + 'px';
-      result.style.width   = rW + 'px';
-      result.style.height  = rH + 'px';
-      result.style.display = 'block';
-
-      // Zoomed background
-      const bgW = imgRect.width  * ZOOM;
-      const bgH = imgRect.height * ZOOM;
-      const ratioX = mx / imgRect.width;
-      const ratioY = my / imgRect.height;
-      const bgX = -(ratioX * bgW - rW / 2);
-      const bgY = -(ratioY * bgH - rH / 2);
-
-      result.style.backgroundImage    = `url('${img.src}')`;
-      result.style.backgroundSize     = `${bgW}px ${bgH}px`;
-      result.style.backgroundPosition = `${bgX}px ${bgY}px`;
-    };
-
-    mimg._zoomLeave = function(){
-      lens.style.display   = 'none';
-      result.style.display = 'none';
-    };
-
-    mimgMain.addEventListener('mousemove', mimg._zoomHandler);
-    mimgMain.addEventListener('mouseleave', mimg._zoomLeave);
-  }, 50);
+  setTimeout(DZ_attachModalZoom, 80);
 
   // Update sticky footer for mobile
   const sf = document.getElementById('mbox-sticky-foot');
@@ -4591,21 +4743,8 @@ function closeModal(){
   document.getElementById('mov').classList.remove('open');
   document.body.classList.remove('modal-open');
   document.body.style.overflow='';
-  // Hide zoom elements
-  const lens = document.getElementById('gz-lens');
-  const result = document.getElementById('gz-result');
-  if(lens)   lens.style.display = 'none';
-  if(result) result.style.display = 'none';
-  // Remove listeners
-  const mimg = document.getElementById('mimg');
-  if(mimg){
-    const target = mimg._zoomTarget || mimg;
-    if(mimg._zoomHandler) target.removeEventListener('mousemove', mimg._zoomHandler);
-    if(mimg._zoomLeave)   target.removeEventListener('mouseleave', mimg._zoomLeave);
-    mimg._zoomHandler = null;
-    mimg._zoomLeave   = null;
-    mimg._zoomTarget  = null;
-  }
+  // Remove zoom listeners and fixed zoom elements so no square remains on the page
+  DZ_detachModalZoom();
 }
 
 /* ================================================================
@@ -6005,6 +6144,269 @@ document.addEventListener('error', function(e){
   }
 }
 </style>
+
+
+
+<!-- DB-DRIVEN PRODUCTS/FILTERS PATCH: Supabase is now the single source for products, filters, stock, prices, and images. -->
+<script id="dzetshal-db-driven-products-patch">
+(function(){
+  const PRODUCT_STATUS_VISIBLE = new Set(['active','published','available','',null,undefined]);
+  const toText = v => String(v == null ? '' : v).trim();
+  const toLower = v => toText(v).toLowerCase();
+  const cleanGender = v => {
+    const g = toLower(v);
+    if(['woman','women','female','ladies','lady','her'].includes(g)) return 'women';
+    if(['man','men','male','gentlemen','him'].includes(g)) return 'men';
+    if(['unisex','all','both'].includes(g)) return 'unisex';
+    return g || 'unisex';
+  };
+  const cleanType = v => {
+    const t = toText(v);
+    if(!t) return 'EDP';
+    const up = t.toUpperCase();
+    const map = { 'EAU DE PARFUM':'EDP', 'EAU DE TOILETTE':'EDT', 'EAU DE COLOGNE':'EDC', 'DEODORANT':'Deo', 'DEO':'Deo', 'BODY':'Body', 'BODY CARE':'Body', 'PARFUM':'Parfum', 'PERFUME':'Parfum' };
+    return map[up] || t;
+  };
+  const sqlVisible = p => PRODUCT_STATUS_VISIBLE.has(p.status) || PRODUCT_STATUS_VISIBLE.has(toLower(p.status));
+  const dbImageFromProduct = p => p.image_url || p.main_image_url || p.image || p.photo_url || p.img || '';
+
+  window.loadAllSupabaseRows = async function(table, select='*', queryBuilder){
+    if(!window.supabaseClient) throw new Error('Supabase client is not available.');
+    const pageSize = 1000;
+    let from = 0;
+    let all = [];
+    while(true){
+      let q = window.supabaseClient.from(table).select(select).range(from, from + pageSize - 1);
+      if(typeof queryBuilder === 'function') q = queryBuilder(q);
+      const { data, error } = await q;
+      if(error) throw error;
+      const rows = Array.isArray(data) ? data : [];
+      all = all.concat(rows);
+      if(rows.length < pageSize) break;
+      from += pageSize;
+    }
+    return all;
+  };
+
+  window.loadProductsFromSupabase = async function(){
+    try{
+      const data = await window.loadAllSupabaseRows('products','*', q => q.order('brand',{ascending:true}).order('name',{ascending:true}));
+      return { data, error: null };
+    }catch(error){
+      return { data: null, error };
+    }
+  };
+
+  window.normalizeSupabaseProduct = function(p){
+    const sku = toText(p.sku || p.product_code || p.barcode || p.id);
+    const stock = Number(p.stock ?? p.quantity ?? p.qty ?? 0);
+    return {
+      id: p.id || sku,
+      sku,
+      brand: toText(p.brand) || 'Unknown',
+      name: toText(p.name || p.product_name || p.title) || 'Untitled product',
+      price: Number(p.price ?? p.regular_price ?? 0),
+      type: cleanType(p.type || p.category || p.product_type),
+      size: toText(p.size || p.volume || p.ml),
+      gender: cleanGender(p.gender || p.audience),
+      desc: toText(p.description || p.desc || p.short_description),
+      description: toText(p.description || p.desc || p.short_description),
+      story: toText(p.story),
+      top_notes: toText(p.top_notes || p.top_node),
+      middle_notes: toText(p.middle_notes || p.middle_node || p.heart_notes),
+      base_notes: toText(p.base_notes || p.base_node),
+      image_url: dbImageFromProduct(p),
+      featured: p.featured === true || p.featured === 'true' || p.featured === 1,
+      stock,
+      status: toLower(p.status || 'active') || 'active',
+      created_at: p.created_at || ''
+    };
+  };
+
+  window.loadProductImagesFromSupabase = async function(productIds){
+    try{
+      if(!Array.isArray(productIds) || !productIds.length) return {};
+      const { data, error } = await window.supabaseClient
+        .from('product_images')
+        .select('*')
+        .in('product_id', productIds)
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: true });
+      if(error) throw error;
+      return (Array.isArray(data) ? data : []).reduce((acc,img)=>{
+        if(!img.product_id || !img.image_url) return acc;
+        (acc[img.product_id] ||= []).push(img);
+        return acc;
+      }, {});
+    }catch(err){
+      console.warn('Dzetshal: product image gallery loading failed.', err);
+      return {};
+    }
+  };
+
+  window.hydrateProductsFromSupabase = async function(){
+    if(!window.supabaseClient) return;
+    try{
+      const { data, error } = await window.loadProductsFromSupabase();
+      if(error) throw error;
+      if(Array.isArray(data)){
+        const imageMap = await window.loadProductImagesFromSupabase(data.map(p => p.id).filter(Boolean));
+        const rows = data.map(row => {
+          const p = window.normalizeSupabaseProduct(row);
+          const gallery = imageMap[row.id] || [];
+          const urls = gallery.map(img => img.image_url).filter(Boolean);
+          const main = gallery.find(img => img.is_main) || gallery[0];
+          p.image_gallery = urls;
+          if(main && main.image_url) p.image_url = main.image_url;
+          return p;
+        }).filter(p => p.sku && sqlVisible(p));
+        // Supabase is the source of truth. If empty, keep local fallback so the site does not break.
+        if(rows.length){
+          window.RAW = rows;
+          RAW = rows;
+          window.DZETSHAL_DB_MODE = true;
+          // DB images and stock override local browser data.
+          rows.forEach(p=>{
+            if(Array.isArray(p.image_gallery) && p.image_gallery.length){
+              imgStore[p.sku] = [p.image_gallery[0] || null, p.image_gallery[1] || null, p.image_gallery[2] || null];
+            }else if(p.image_url){
+              imgStore[p.sku] = p.image_url;
+            }
+            stkStore[p.sku] = { qty: Number(p.stock || 0), inStock: Number(p.stock || 0) > 0 };
+          });
+          console.log('Dzetshal: loaded products from Supabase:', rows.length);
+        }else{
+          console.warn('Dzetshal: Supabase returned 0 visible products. Keeping local fallback products.');
+        }
+      }
+    }catch(err){
+      console.warn('Dzetshal: Supabase product loading failed. Keeping local fallback products.', err);
+    }
+  };
+
+  window.getStkInfo = function(sku){
+    const p = Array.isArray(RAW) ? RAW.find(x => String(x.sku) === String(sku)) : null;
+    if(window.DZETSHAL_DB_MODE && p){
+      const qty = Number(p.stock || 0);
+      return { qty, inStock: qty > 0 && sqlVisible(p) };
+    }
+    return stkStore[sku] || {qty:999, inStock:true};
+  };
+
+  window.isInStock = function(sku){
+    const s = window.getStkInfo(sku);
+    return !!(s.inStock && Number(s.qty) > 0);
+  };
+
+  function uniqSorted(values){
+    return Array.from(new Set(values.map(toText).filter(Boolean))).sort((a,b)=>a.localeCompare(b));
+  }
+  function buttonHtml(label, value, active, kind){
+    return `<button type="button" class="pill${kind==='type'?' ton':''}${active?' on':''}" data-val="${dzAttr(value)}">${dzAttr(label)}</button>`;
+  }
+
+  window.buildBrandPills = function(){
+    const el = document.getElementById('brand-pills');
+    if(!el) return;
+    const brands = uniqSorted((RAW||[]).map(p=>p.brand));
+    if(filter.brand !== 'ALL' && !brands.includes(filter.brand)) filter.brand = 'ALL';
+    el.innerHTML = buttonHtml('All Brands','ALL', filter.brand==='ALL','brand') + brands.map(b=>buttonHtml(b,b,filter.brand===b,'brand')).join('');
+    el.querySelectorAll('button').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        clearSearchState();
+        filter.brand = btn.dataset.val || 'ALL';
+        filter.page = 1;
+        syncFilterUI();
+        renderGrid();
+        const p = document.getElementById('products');
+        if(p) p.scrollIntoView({behavior:'smooth', block:'start'});
+      });
+    });
+  };
+
+  window.buildTypePills = function(){
+    const el = document.getElementById('type-pills');
+    if(!el) return;
+    const preferred = ['EDP','EDT','Parfum','EDC','Deo','Body'];
+    const found = uniqSorted((RAW||[]).map(p=>p.type));
+    const types = preferred.filter(t=>found.includes(t)).concat(found.filter(t=>!preferred.includes(t)));
+    if(filter.type !== 'ALL' && !types.includes(filter.type)) filter.type = 'ALL';
+    el.innerHTML = buttonHtml('All Types','ALL', filter.type==='ALL','type') + types.map(t=>buttonHtml(t,t,filter.type===t,'type')).join('');
+    el.querySelectorAll('button').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        clearSearchState();
+        filter.type = btn.dataset.val || 'ALL';
+        filter.page = 1;
+        syncFilterUI();
+        renderGrid();
+        const p = document.getElementById('products');
+        if(p) p.scrollIntoView({behavior:'smooth', block:'start'});
+      });
+    });
+  };
+
+  window.buildGenderOptions = function(){
+    const el = document.getElementById('gender-sel');
+    if(!el) return;
+    const labels = {all:'All Genders', women:'Women', men:'Men', unisex:'Unisex'};
+    const found = uniqSorted((RAW||[]).map(p=>cleanGender(p.gender)));
+    const genders = ['all'].concat(['women','men','unisex'].filter(g=>found.includes(g))).concat(found.filter(g=>!['women','men','unisex'].includes(g)));
+    if(filter.gender !== 'all' && !genders.includes(filter.gender)) filter.gender = 'all';
+    el.innerHTML = genders.map(g=>`<option value="${dzAttr(g)}">${dzAttr(labels[g] || (g.charAt(0).toUpperCase()+g.slice(1)))}</option>`).join('');
+    el.value = filter.gender;
+  };
+
+  window.syncFilterUI = function(){
+    const gs = document.getElementById('gender-sel'); if(gs) gs.value = filter.gender;
+    const ss = document.getElementById('sort-sel'); if(ss) ss.value = filter.sort;
+    document.querySelectorAll('#brand-pills .pill').forEach(p=>p.classList.toggle('on', p.dataset.val === filter.brand));
+    document.querySelectorAll('#type-pills .pill').forEach(p=>p.classList.toggle('on', p.dataset.val === filter.type));
+  };
+
+  window.applyFilter = function(){
+    let r = Array.isArray(RAW) ? [...RAW] : [];
+    if(filter.brand !== 'ALL') r = r.filter(p=>p.brand === filter.brand);
+    if(filter.gender !== 'all') r = r.filter(p=>cleanGender(p.gender) === filter.gender);
+    if(filter.type !== 'ALL') r = r.filter(p=>p.type === filter.type);
+    if(filter.search){
+      const q = toLower(filter.search);
+      r = r.filter(p => (`${p.name||''} ${p.brand||''} ${p.type||''} ${p.gender||''} ${p.size||''} ${p.desc||p.description||''}`).toLowerCase().includes(q));
+    }
+    if(filter.inStockOnly) r = r.filter(p=>isInStock(p.sku));
+    if(filter.sort === 'featured') r.sort((a,b)=>(b.featured?1:0)-(a.featured?1:0)||a.brand.localeCompare(b.brand)||a.name.localeCompare(b.name));
+    else if(filter.sort === 'price-asc') r.sort((a,b)=>Number(a.price)-Number(b.price));
+    else if(filter.sort === 'price-desc') r.sort((a,b)=>Number(b.price)-Number(a.price));
+    else if(filter.sort === 'brand') r.sort((a,b)=>a.brand.localeCompare(b.brand)||a.name.localeCompare(b.name));
+    else r.sort((a,b)=>a.name.localeCompare(b.name));
+    return r;
+  };
+
+  window.init = async function(){
+    await loadStorage();
+    await hydrateProductsFromSupabase();
+    buildBrandPills();
+    buildTypePills();
+    buildGenderOptions();
+    renderGrid();
+    renderCartBadge();
+    renderWishBadge();
+    const ham = document.getElementById('ham');
+    if(ham && !ham.dataset.bound){
+      ham.dataset.bound = '1';
+      ham.addEventListener('click',()=>{
+        document.getElementById('mob-menu')?.classList.add('open');
+        document.getElementById('mob-ov')?.classList.add('open');
+      });
+    }
+    const cform = document.getElementById('cform');
+    if(cform && !cform.dataset.bound){ cform.dataset.bound='1'; cform.addEventListener('submit', submitContact); }
+    if(!window.__dzEscBound){
+      window.__dzEscBound = true;
+      document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closeModal(); closeAdmin(); } });
+    }
+  };
+})();
+</script>
 
 </body>
 </html>
