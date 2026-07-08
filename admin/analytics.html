@@ -1,0 +1,15 @@
+<!DOCTYPE html><html><head><script src='js/common.js'></script><script>document.write(layout('Analytics','analytics',`
+<div class='kpi-grid grid'>
+ <div class='kpi accent'><div class='label'>Total Revenue</div><div class='value' id='totalRevenue'>RWF 0</div><div class='sub'>Loaded orders</div></div>
+ <div class='kpi'><div class='label'>Total Orders</div><div class='value' id='totalOrders'>0</div><div class='sub'>All statuses</div></div>
+ <div class='kpi'><div class='label'>Average Order</div><div class='value' id='averageOrder'>RWF 0</div><div class='sub'>Revenue / orders</div></div>
+ <div class='kpi warn'><div class='label'>Inventory Value</div><div class='value' id='inventoryValue'>RWF 0</div><div class='sub'>Price × stock</div></div>
+</div>
+<div class='grid split'>
+ <div class='panel'><div class='panel-head'><h2>Revenue by Day</h2><button class='btn outline small' id='refreshBtn'>Refresh</button></div><div class='panel-body'><canvas id='analyticsRevenue' height='140'></canvas></div></div>
+ <div class='panel'><div class='panel-head'><h2>Orders by Status</h2></div><div class='panel-body'><canvas id='statusChart' height='140'></canvas></div></div>
+</div>
+<div class='grid split' style='margin-top:18px'>
+ <div class='panel'><div class='panel-head'><h2>Top Products</h2></div><div class='panel-body'><div class='stat-list' id='topProducts'></div></div></div>
+ <div class='panel'><div class='panel-head'><h2>Top Brands</h2></div><div class='panel-body'><div class='stat-list' id='topBrands'></div></div></div>
+</div>`))</script></head><body><script src='js/analytics.js'></script></body></html>

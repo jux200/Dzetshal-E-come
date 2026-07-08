@@ -82,6 +82,44 @@ function productMainImage(p){
   return main?.image_url || p.image_url || placeholder();
 }
 
+async function syncProductMainImage(productId, preferredImageUrl){
+  if(!productId) return null;
+  let product = PRODUCTS.find(p=>p.id===productId);
+  if(!product){
+    const {data}=await sb.from('products').select('*').eq('id', productId).maybeSingle();
+    product = data || null;
+  }
+  let imgs = PRODUCT_IMAGES_BY_PRODUCT[productId] || [];
+  if(!imgs.length){
+    const manualUrl = preferredImageUrl || product?.image_url || '';
+    const pimage = document.getElementById('pimage');
+    if(pimage && document.getElementById('pid')?.value === productId) pimage.value = manualUrl;
+    return manualUrl || null;
+  }
+
+  let main = imgs.find(x=>x.is_main);
+  if(!main && preferredImageUrl){
+    main = imgs.find(x=>String(x.image_url||'') === String(preferredImageUrl));
+  }
+  if(!main && product?.image_url){
+    main = imgs.find(x=>String(x.image_url||'') === String(product.image_url));
+  }
+  if(!main) main = imgs[0];
+
+  // Keep one source of truth: one gallery image marked as main, and products.image_url mirrors it.
+  await sb.from('product_images').update({is_main:false}).eq('product_id', productId);
+  await sb.from('product_images').update({is_main:true}).eq('id', main.id);
+  await sb.from('products').update({image_url:main.image_url}).eq('id', productId);
+
+  const localProduct = PRODUCTS.find(p=>p.id===productId);
+  if(localProduct) localProduct.image_url = main.image_url;
+  const pimage = document.getElementById('pimage');
+  if(pimage && document.getElementById('pid')?.value === productId) pimage.value = main.image_url;
+
+  await loadProductImages();
+  return main.image_url;
+}
+
 document.addEventListener('DOMContentLoaded', async()=>{
   if(!await requireAdmin()) return;
   await loadProducts();
@@ -120,6 +158,14 @@ function renderProducts(){
     </tr>`).join('') || `<tr><td colspan='6'>No products found.</td></tr>`;
 }
 
+
+function statusBadge(status){
+  const s = String(status || 'active').toLowerCase();
+  if(s === 'hidden') return `<span class='badge gray'>hidden</span>`;
+  if(s === 'inactive') return `<span class='badge amber'>inactive</span>`;
+  return `<span class='badge green'>active</span>`;
+}
+
 function ensureOption(select, value){
   if(!select || !value) return;
   if(!Array.from(select.options).some(o=>o.value===value)){
@@ -148,6 +194,12 @@ function openProduct(id){
   const gf = $('#galleryFiles'); if(gf) gf.value='';
   $('#productModal').classList.add('open');
   renderImageManager(p?.id || null);
+  if(p?.id){
+    syncProductMainImage(p.id).then(()=>{
+      renderImageManager(p.id);
+      renderProducts();
+    }).catch(()=>{});
+  }
 }
 
 function initImageDropZone(){
@@ -180,8 +232,10 @@ function renderImageManager(productId){
     <div class='media-card ${img.is_main?'main':''}'>
       <div class='media-thumb'><img src='${escapeHtml(img.image_url)}' loading='lazy' onerror="this.style.display='none'"></div>
       <div class='media-actions'>
-        <button class='btn outline small' type='button' onclick="setMainImage('${img.id}')">Main</button>
+        <button class='btn ${img.is_main?'primary':'outline'} small' type='button' onclick="setMainImage('${img.id}')">${img.is_main?'Main ✓':'Make Main'}</button>
+        <button class='btn outline small' type='button' onclick="document.getElementById('replace-${img.id}').click()">Replace</button>
         <button class='btn danger small' type='button' onclick="deleteImage('${img.id}')">Delete</button>
+        <input id='replace-${img.id}' type='file' accept='image/*' style='display:none' onchange="replaceImage('${img.id}', this.files[0])">
       </div>
       ${img.is_main?`<span class='badge active'>Main</span>`:''}
     </div>`).join('');
@@ -251,26 +305,91 @@ async function setMainImage(imageId){
     const {error:pErr}=await sb.from('products').update({image_url:img.image_url}).eq('id',productId);
     if(pErr) throw pErr;
     const p=PRODUCTS.find(x=>x.id===productId); if(p) p.image_url=img.image_url;
+    const pimage = document.getElementById('pimage');
+    if(pimage && document.getElementById('pid')?.value === productId) pimage.value = img.image_url;
     await loadProductImages(); renderImageManager(productId); renderProducts(); toast('Main image updated');
   }catch(err){ toast(err.message || 'Could not set main image'); }
+}
+
+
+async function replaceImage(imageId, file){
+  if(!file || !/^image\//.test(file.type)){ toast('Please choose a valid image file.'); return; }
+  let img = PRODUCT_IMAGES.find(x=>x.id===imageId);
+  try{
+    const {data:freshImg}=await sb.from('product_images').select('*').eq('id', imageId).maybeSingle();
+    if(freshImg) img = freshImg;
+  }catch(_){ }
+  if(!img) return;
+
+  try{
+    const p = PRODUCTS.find(x=>x.id===img.product_id) || {name:'product',brand:'dzetshal',image_url:''};
+    const oldImageUrl = img.image_url || '';
+    const wasMain = !!img.is_main || (!!p.image_url && p.image_url === oldImageUrl);
+
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const folder = `${slugify(p.brand)}-${slugify(p.name)}`;
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const path = `${folder}/${fileName}`;
+
+    const {error:uploadError}=await sb.storage.from('products').upload(path,file,{upsert:false,cacheControl:'3600'});
+    if(uploadError) throw uploadError;
+
+    const {data}=sb.storage.from('products').getPublicUrl(path);
+    const imageUrl = data.publicUrl;
+
+    const {error:updateError}=await sb.from('product_images').update({
+      image_url:imageUrl,
+      storage_path:path,
+      alt_text:`${p.brand || ''} ${p.name || ''}`.trim(),
+      is_main: wasMain
+    }).eq('id', imageId);
+    if(updateError) throw updateError;
+
+    if(wasMain){
+      await sb.from('product_images').update({is_main:false}).eq('product_id',img.product_id).neq('id', imageId);
+      const {error:pErr}=await sb.from('products').update({image_url:imageUrl}).eq('id',img.product_id);
+      if(pErr) throw pErr;
+      const prod = PRODUCTS.find(x=>x.id===img.product_id);
+      if(prod) prod.image_url=imageUrl;
+      const pimage = document.getElementById('pimage');
+      if(pimage && document.getElementById('pid')?.value === img.product_id) pimage.value = imageUrl;
+    }
+
+    if(img.storage_path){ await sb.storage.from('products').remove([img.storage_path]).catch(()=>{}); }
+
+    await loadProductImages();
+    if(wasMain) await syncProductMainImage(img.product_id, imageUrl);
+    renderImageManager(img.product_id);
+    renderProducts();
+    toast(wasMain ? 'Main image replaced' : 'Image replaced');
+  }catch(err){ toast(err.message || 'Could not replace image'); }
 }
 
 async function deleteImage(imageId){
   const img = PRODUCT_IMAGES.find(x=>x.id===imageId); if(!img) return;
   if(!confirm('Delete this image from the product gallery?')) return;
   try{
+    const productId = img.product_id;
+    const wasMain = !!img.is_main || (PRODUCTS.find(p=>p.id===productId)?.image_url === img.image_url);
     const {error}=await sb.from('product_images').delete().eq('id',imageId);
     if(error) throw error;
     if(img.storage_path){ await sb.storage.from('products').remove([img.storage_path]).catch(()=>{}); }
+
     await loadProductImages();
-    const remaining = PRODUCT_IMAGES_BY_PRODUCT[img.product_id] || [];
-    if(!remaining.find(x=>x.is_main) && remaining[0]) await setMainImage(remaining[0].id);
-    else {
-      const newMain = remaining.find(x=>x.is_main) || remaining[0];
-      await sb.from('products').update({image_url:newMain?.image_url || ''}).eq('id',img.product_id);
+    const remaining = PRODUCT_IMAGES_BY_PRODUCT[productId] || [];
+    if(remaining.length){
+      if(wasMain || !remaining.find(x=>x.is_main)){
+        await setMainImage(remaining[0].id);
+      }
+    }else{
+      await sb.from('products').update({image_url:''}).eq('id',productId);
+      const p=PRODUCTS.find(x=>x.id===productId); if(p) p.image_url='';
+      const pimage=document.getElementById('pimage');
+      if(pimage && document.getElementById('pid')?.value === productId) pimage.value='';
     }
     await loadProducts();
-    renderImageManager(img.product_id);
+    renderImageManager(productId);
+    renderProducts();
     toast('Image deleted');
   }catch(err){ toast(err.message || 'Could not delete image'); }
 }
@@ -292,6 +411,12 @@ async function saveProduct(e){
   btn.disabled=true; btn.textContent='Saving...';
   try{
     let image_url = $('#pimage').value.trim();
+    const id = $('#pid').value;
+    if(id){
+      const imgs = PRODUCT_IMAGES_BY_PRODUCT[id] || [];
+      const mainImg = imgs.find(x=>x.is_main) || imgs.find(x=>x.image_url === image_url) || imgs[0];
+      if(mainImg) image_url = mainImg.image_url;
+    }
     const payload = {
       name: $('#pname').value.trim(),
       brand: $('#pbrand').value.trim(),
@@ -306,7 +431,6 @@ async function saveProduct(e){
     };
     if(!payload.name) throw new Error('Product name is required.');
     if(!payload.brand) throw new Error('Brand is required.');
-    const id = $('#pid').value;
     let productId = id;
     if(id){
       const {error}=await sb.from('products').update(payload).eq('id',id);
@@ -322,6 +446,8 @@ async function saveProduct(e){
     if(fileInput && fileInput.files && fileInput.files.length){
       await uploadSelectedImages(fileInput.files);
     }
+    await loadProductImages();
+    await syncProductMainImage(productId, image_url);
     toast('Product saved');
     $('#productModal').classList.remove('open');
     await loadProducts();

@@ -1307,9 +1307,9 @@ async function loadProductsFromSupabase(){
 
 
 <style>
-/* Final zoom fix: keep desktop magnifier, but never leave orphan squares on the page. */
+/* Final zoom fix: inner hover zoom; no floating square/lens can remain on the page. */
 #gz-lens,#gz-result{
-  display:none;
+  display:none !important;
   pointer-events:none;
 }
 #gz-lens{
@@ -1336,7 +1336,7 @@ async function loadProductsFromSupabase(){
 }
 .mimg-main .mgslide img{cursor:crosshair;}
 @media(max-width:900px){
-  #gz-lens,#gz-result{display:none !important;}
+   #gz-lens,#gz-result{display:none !important;}
   .mimg-main .mgslide img{cursor:default;}
 }
 </style>
@@ -4072,123 +4072,6 @@ function DZ_detachModalZoom(){
 }
 function DZ_attachModalZoom(){
   DZ_detachModalZoom();
-
-  if(window.matchMedia && window.matchMedia('(max-width: 900px)').matches){
-    return;
-  }
-
-  const modal = document.getElementById('mov');
-  const mimg = document.getElementById('mimg');
-  if(!modal || !modal.classList.contains('open') || !mimg) return;
-
-  const mimgMain = mimg.querySelector('.mimg-main') || mimg;
-  if(!mimgMain) return;
-
-  mimgMain.style.position = 'relative';
-  mimgMain.style.overflow = 'hidden';
-
-  let lens = document.createElement('div');
-  lens.id = 'gz-lens';
-  lens.style.cssText = [
-    'position:absolute',
-    'width:82px',
-    'height:82px',
-    'border:2px solid #224C44',
-    'border-radius:4px',
-    'background:rgba(34,76,68,.06)',
-    'pointer-events:none',
-    'display:none',
-    'z-index:25',
-    'box-sizing:border-box',
-    'box-shadow:0 0 0 1px rgba(255,255,255,.55)'
-  ].join(';');
-  mimgMain.appendChild(lens);
-
-  let result = document.createElement('div');
-  result.id = 'gz-result';
-  result.style.cssText = [
-    'position:fixed',
-    'width:340px',
-    'height:420px',
-    'border:1px solid #ddd',
-    'border-radius:8px',
-    'background:#f7f5f2',
-    'background-repeat:no-repeat',
-    'box-shadow:0 8px 40px rgba(0,0,0,.2)',
-    'pointer-events:none',
-    'display:none',
-    'z-index:9998',
-    'overflow:hidden'
-  ].join(';');
-  document.body.appendChild(result);
-
-  function getActiveImg(){
-    const activeSlide = mimgMain.querySelector('.mgslide.active') || mimgMain.querySelector('.mgslide[style*="flex"]');
-    if(activeSlide) return activeSlide.querySelector('img');
-    return mimgMain.querySelector('img');
-  }
-
-  function hide(){ DZ_hideZoomElements(); }
-
-  mimg._zoomHandler = function(e){
-    const img = getActiveImg();
-    if(!img || !img.complete || !img.naturalWidth){ hide(); return; }
-
-    const imgRect = img.getBoundingClientRect();
-    const mainRect = mimgMain.getBoundingClientRect();
-    const mx = e.clientX - imgRect.left;
-    const my = e.clientY - imgRect.top;
-
-    // Only activate over the real visible image, not the white margins.
-    if(mx < 0 || my < 0 || mx > imgRect.width || my > imgRect.height){
-      hide();
-      return;
-    }
-
-    const lensW = Math.min(82, Math.max(48, imgRect.width * 0.22));
-    const lensH = Math.min(82, Math.max(48, imgRect.height * 0.22));
-    const ZOOM = 3;
-
-    lens.style.width = lensW + 'px';
-    lens.style.height = lensH + 'px';
-
-    // Lens is absolute inside .mimg-main and clipped by overflow:hidden.
-    const lensViewportX = Math.max(imgRect.left, Math.min(e.clientX - lensW/2, imgRect.right - lensW));
-    const lensViewportY = Math.max(imgRect.top,  Math.min(e.clientY - lensH/2, imgRect.bottom - lensH));
-    lens.style.left = (lensViewportX - mainRect.left) + 'px';
-    lens.style.top  = (lensViewportY - mainRect.top) + 'px';
-    lens.style.display = 'block';
-
-    // Result panel appears beside the image column, but stays inside viewport.
-    const rW = Math.min(340, Math.max(260, window.innerWidth - 32));
-    const rH = Math.min(420, Math.max(260, mainRect.height), window.innerHeight - 32);
-    let rX = mainRect.right + 12;
-    if(rX + rW > window.innerWidth - 12) rX = mainRect.left - rW - 12;
-    if(rX < 12) rX = Math.max(12, window.innerWidth - rW - 12);
-    let rY = Math.max(12, Math.min(mainRect.top, window.innerHeight - rH - 12));
-
-    result.style.left = rX + 'px';
-    result.style.top = rY + 'px';
-    result.style.width = rW + 'px';
-    result.style.height = rH + 'px';
-    result.style.display = 'block';
-
-    const bgW = imgRect.width * ZOOM;
-    const bgH = imgRect.height * ZOOM;
-    const ratioX = mx / imgRect.width;
-    const ratioY = my / imgRect.height;
-    const bgX = -(ratioX * bgW - rW / 2);
-    const bgY = -(ratioY * bgH - rH / 2);
-
-    result.style.backgroundImage = `url('${img.src}')`;
-    result.style.backgroundSize = `${bgW}px ${bgH}px`;
-    result.style.backgroundPosition = `${bgX}px ${bgY}px`;
-  };
-
-  mimg._zoomLeave = hide;
-  mimg._zoomTarget = mimgMain;
-  mimgMain.addEventListener('mousemove', mimg._zoomHandler);
-  mimgMain.addEventListener('mouseleave', mimg._zoomLeave);
 }
 window.addEventListener('resize', DZ_hideZoomElements);
 window.addEventListener('scroll', DZ_hideZoomElements, true);
@@ -4721,8 +4604,67 @@ function openModal(sku, groupKey){
   document.body.classList.add('modal-open');
   document.body.style.overflow='hidden';
 
-  // Attach magnifier AFTER gallery HTML is in the DOM
-  setTimeout(DZ_attachModalZoom, 80);
+  // Attach premium inner image zoom AFTER gallery HTML is in the DOM.
+  // This keeps the zoom feature but removes the floating square/lens completely.
+  setTimeout(function(){
+    DZ_detachModalZoom();
+
+    // Mobile/tablet: disable hover zoom. Users can pinch normally.
+    if(window.matchMedia && window.matchMedia('(max-width: 900px)').matches){
+      DZ_destroyZoomElements();
+      return;
+    }
+
+    const mimg = document.getElementById('mimg');
+    if(!mimg) return;
+    const mimgMain = mimg.querySelector('.mimg-main') || mimg;
+    mimg._zoomTarget = mimgMain;
+
+    function getActiveImg(){
+      const activeSlide = mimgMain.querySelector('.mgslide.active') || mimgMain.querySelector('.mgslide[style*="flex"]');
+      if(activeSlide) return activeSlide.querySelector('img');
+      return mimgMain.querySelector('img');
+    }
+
+    function resetActiveZoom(){
+      const img = getActiveImg();
+      if(img){
+        img.style.transformOrigin = 'center center';
+        img.style.transform = '';
+        img.style.transition = 'transform .18s ease';
+      }
+      DZ_hideZoomElements();
+    }
+
+    mimg._zoomHandler = function(e){
+      const img = getActiveImg();
+      if(!img || !img.complete || !img.naturalWidth) return;
+
+      const imgRect = img.getBoundingClientRect();
+      const mx = e.clientX - imgRect.left;
+      const my = e.clientY - imgRect.top;
+
+      // Only zoom over the actual image area, not white margins.
+      if(mx < 0 || my < 0 || mx > imgRect.width || my > imgRect.height){
+        resetActiveZoom();
+        return;
+      }
+
+      const x = (mx / imgRect.width) * 100;
+      const y = (my / imgRect.height) * 100;
+
+      img.style.transition = 'transform .08s ease-out';
+      img.style.transformOrigin = x + '% ' + y + '%';
+      img.style.transform = 'scale(2.15)';
+    };
+
+    mimg._zoomLeave = function(){
+      resetActiveZoom();
+    };
+
+    mimgMain.addEventListener('mousemove', mimg._zoomHandler);
+    mimgMain.addEventListener('mouseleave', mimg._zoomLeave);
+  }, 80);
 
   // Update sticky footer for mobile
   const sf = document.getElementById('mbox-sticky-foot');
