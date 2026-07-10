@@ -1,0 +1,17 @@
+<!DOCTYPE html><html><head><script src='js/common.js'></script><script>document.write(layout('AI Insights','ai-insights',`
+<div class='toolbar'>
+ <div class='toolbar-left'><select id='insightRange'><option value='30'>Last 30 days</option><option value='90'>Last 90 days</option><option value='365'>This year</option></select></div>
+ <div class='toolbar-right'><button class='btn outline' id='copyInsights'>Copy Summary</button><button class='btn primary' id='refreshBtn'>Refresh</button></div>
+</div>
+<div class='kpi-grid grid small-kpis'>
+ <div class='kpi'><div class='label'>Fast Movers</div><div class='value' id='fastCount'>0</div><div class='sub'>High sales velocity</div></div>
+ <div class='kpi warn'><div class='label'>Slow Movers</div><div class='value' id='slowCount'>0</div><div class='sub'>No recent movement</div></div>
+ <div class='kpi'><div class='label'>Restock Needed</div><div class='value' id='restockCount'>0</div><div class='sub'>Suggested action</div></div>
+</div>
+<div class='panel'><div class='panel-head'><h2>Executive Summary</h2><span class='muted'>Generated from Supabase data</span></div><div class='panel-body'><div class='ai-output' id='executiveSummary'>Loading insights…</div></div></div>
+<div class='grid three-col' style='margin-top:18px'>
+ <div class='panel'><div class='panel-head'><h2>Restock Recommendations</h2></div><div class='panel-body'><div class='stat-list' id='restockList'></div></div></div>
+ <div class='panel'><div class='panel-head'><h2>Slow Moving Products</h2></div><div class='panel-body'><div class='stat-list' id='slowList'></div></div></div>
+ <div class='panel'><div class='panel-head'><h2>Fast Sellers</h2></div><div class='panel-body'><div class='stat-list' id='fastList'></div></div></div>
+</div>
+`))</script></head><body><script src='js/ai-insights.js'></script></body></html>

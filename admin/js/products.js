@@ -78,46 +78,81 @@ async function loadProductImages(){
 
 function productMainImage(p){
   const imgs = PRODUCT_IMAGES_BY_PRODUCT[p.id] || [];
-  const main = imgs.find(x=>x.is_main) || imgs[0];
+  const main = imgs.find(x=>x.is_main) || imgs.find(x=>String(x.image_url||'') === String(p.image_url||'')) || imgs[0];
   return main?.image_url || p.image_url || placeholder();
 }
 
-async function syncProductMainImage(productId, preferredImageUrl){
-  if(!productId) return null;
-  let product = PRODUCTS.find(p=>p.id===productId);
-  if(!product){
-    const {data}=await sb.from('products').select('*').eq('id', productId).maybeSingle();
-    product = data || null;
+async function fetchFreshProduct(productId){
+  const { data, error } = await sb.from('products').select('*').eq('id', productId).maybeSingle();
+  if(error) throw error;
+  return data || null;
+}
+
+async function fetchFreshImages(productId){
+  const { data, error } = await sb.from('product_images').select('*').eq('product_id', productId).order('sort_order',{ascending:true}).order('created_at',{ascending:true});
+  if(error) throw error;
+  return Array.isArray(data) ? data : [];
+}
+
+function updateLocalProductImage(productId, imageUrl){
+  const p = PRODUCTS.find(x=>x.id===productId);
+  if(p) p.image_url = imageUrl || '';
+  const pimage = document.getElementById('pimage');
+  if(pimage && document.getElementById('pid')?.value === productId) pimage.value = imageUrl || '';
+}
+
+async function setOnlyMainImage(productId, imageId, imageUrl){
+  // Keep gallery and products table synchronized. This is the only place that changes the main image.
+  await sb.from('product_images').update({is_main:false}).eq('product_id', productId);
+  if(imageId){
+    const { error } = await sb.from('product_images').update({is_main:true}).eq('id', imageId);
+    if(error) throw error;
   }
-  let imgs = PRODUCT_IMAGES_BY_PRODUCT[productId] || [];
+  const { error:pErr } = await sb.from('products').update({image_url:imageUrl || ''}).eq('id', productId);
+  if(pErr) throw pErr;
+  updateLocalProductImage(productId, imageUrl || '');
+}
+
+async function ensureProductMediaState(productId, preferredImageUrl){
+  if(!productId) return null;
+  const product = await fetchFreshProduct(productId);
+  if(!product) return null;
+  let imgs = await fetchFreshImages(productId);
+
+  // If the product has a legacy/manual Image URL but no matching gallery row, add it to the gallery
+  // so the main image becomes visible and manageable in the editor.
+  const manualUrl = normText(preferredImageUrl || product.image_url);
+  if(manualUrl && !imgs.some(x=>String(x.image_url||'') === String(manualUrl))){
+    const { error: insertErr } = await sb.from('product_images').insert({
+      product_id: productId,
+      image_url: manualUrl,
+      storage_path: null,
+      sort_order: imgs.length,
+      is_main: imgs.length === 0,
+      alt_text: `${product.brand || ''} ${product.name || ''}`.trim()
+    });
+    if(insertErr) throw insertErr;
+    imgs = await fetchFreshImages(productId);
+  }
+
   if(!imgs.length){
-    const manualUrl = preferredImageUrl || product?.image_url || '';
-    const pimage = document.getElementById('pimage');
-    if(pimage && document.getElementById('pid')?.value === productId) pimage.value = manualUrl;
+    updateLocalProductImage(productId, manualUrl || '');
     return manualUrl || null;
   }
 
-  let main = imgs.find(x=>x.is_main);
-  if(!main && preferredImageUrl){
-    main = imgs.find(x=>String(x.image_url||'') === String(preferredImageUrl));
-  }
-  if(!main && product?.image_url){
-    main = imgs.find(x=>String(x.image_url||'') === String(product.image_url));
-  }
-  if(!main) main = imgs[0];
+  let main = null;
+  if(preferredImageUrl){ main = imgs.find(x=>String(x.image_url||'') === String(preferredImageUrl)); }
+  if(!main){ main = imgs.find(x=>x.is_main); }
+  if(!main && product.image_url){ main = imgs.find(x=>String(x.image_url||'') === String(product.image_url)); }
+  if(!main){ main = imgs[0]; }
 
-  // Keep one source of truth: one gallery image marked as main, and products.image_url mirrors it.
-  await sb.from('product_images').update({is_main:false}).eq('product_id', productId);
-  await sb.from('product_images').update({is_main:true}).eq('id', main.id);
-  await sb.from('products').update({image_url:main.image_url}).eq('id', productId);
-
-  const localProduct = PRODUCTS.find(p=>p.id===productId);
-  if(localProduct) localProduct.image_url = main.image_url;
-  const pimage = document.getElementById('pimage');
-  if(pimage && document.getElementById('pid')?.value === productId) pimage.value = main.image_url;
-
+  await setOnlyMainImage(productId, main.id, main.image_url);
   await loadProductImages();
   return main.image_url;
+}
+
+async function syncProductMainImage(productId, preferredImageUrl){
+  return ensureProductMediaState(productId, preferredImageUrl);
 }
 
 document.addEventListener('DOMContentLoaded', async()=>{
@@ -296,35 +331,34 @@ async function uploadProductImage(productId, file){
 }
 
 async function setMainImage(imageId){
-  const img = PRODUCT_IMAGES.find(x=>x.id===imageId); if(!img) return;
-  const productId = img.product_id;
+  let img = PRODUCT_IMAGES.find(x=>x.id===imageId);
   try{
-    await sb.from('product_images').update({is_main:false}).eq('product_id',productId);
-    const {error}=await sb.from('product_images').update({is_main:true}).eq('id',imageId);
-    if(error) throw error;
-    const {error:pErr}=await sb.from('products').update({image_url:img.image_url}).eq('id',productId);
-    if(pErr) throw pErr;
-    const p=PRODUCTS.find(x=>x.id===productId); if(p) p.image_url=img.image_url;
-    const pimage = document.getElementById('pimage');
-    if(pimage && document.getElementById('pid')?.value === productId) pimage.value = img.image_url;
-    await loadProductImages(); renderImageManager(productId); renderProducts(); toast('Main image updated');
+    const {data:freshImg,error:freshErr}=await sb.from('product_images').select('*').eq('id', imageId).maybeSingle();
+    if(freshErr) throw freshErr;
+    if(freshImg) img = freshImg;
+    if(!img) return;
+    await setOnlyMainImage(img.product_id, img.id, img.image_url);
+    await loadProductImages();
+    renderImageManager(img.product_id);
+    renderProducts();
+    toast('Main image updated');
   }catch(err){ toast(err.message || 'Could not set main image'); }
 }
-
 
 async function replaceImage(imageId, file){
   if(!file || !/^image\//.test(file.type)){ toast('Please choose a valid image file.'); return; }
   let img = PRODUCT_IMAGES.find(x=>x.id===imageId);
   try{
-    const {data:freshImg}=await sb.from('product_images').select('*').eq('id', imageId).maybeSingle();
+    const {data:freshImg,error:freshErr}=await sb.from('product_images').select('*').eq('id', imageId).maybeSingle();
+    if(freshErr) throw freshErr;
     if(freshImg) img = freshImg;
-  }catch(_){ }
+  }catch(err){ toast(err.message || 'Could not load image'); return; }
   if(!img) return;
 
   try{
-    const p = PRODUCTS.find(x=>x.id===img.product_id) || {name:'product',brand:'dzetshal',image_url:''};
-    const oldImageUrl = img.image_url || '';
-    const wasMain = !!img.is_main || (!!p.image_url && p.image_url === oldImageUrl);
+    const p = PRODUCTS.find(x=>x.id===img.product_id) || await fetchFreshProduct(img.product_id) || {name:'product',brand:'dzetshal',image_url:''};
+    const wasMain = !!img.is_main || (!!p.image_url && String(p.image_url) === String(img.image_url));
+    const oldStoragePath = img.storage_path || '';
 
     const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
     const folder = `${slugify(p.brand)}-${slugify(p.name)}`;
@@ -337,6 +371,7 @@ async function replaceImage(imageId, file){
     const {data}=sb.storage.from('products').getPublicUrl(path);
     const imageUrl = data.publicUrl;
 
+    // Replace the SAME row. This preserves position, ID and whether it was main.
     const {error:updateError}=await sb.from('product_images').update({
       image_url:imageUrl,
       storage_path:path,
@@ -346,19 +381,12 @@ async function replaceImage(imageId, file){
     if(updateError) throw updateError;
 
     if(wasMain){
-      await sb.from('product_images').update({is_main:false}).eq('product_id',img.product_id).neq('id', imageId);
-      const {error:pErr}=await sb.from('products').update({image_url:imageUrl}).eq('id',img.product_id);
-      if(pErr) throw pErr;
-      const prod = PRODUCTS.find(x=>x.id===img.product_id);
-      if(prod) prod.image_url=imageUrl;
-      const pimage = document.getElementById('pimage');
-      if(pimage && document.getElementById('pid')?.value === img.product_id) pimage.value = imageUrl;
+      await setOnlyMainImage(img.product_id, imageId, imageUrl);
     }
 
-    if(img.storage_path){ await sb.storage.from('products').remove([img.storage_path]).catch(()=>{}); }
+    if(oldStoragePath){ await sb.storage.from('products').remove([oldStoragePath]).catch(()=>{}); }
 
     await loadProductImages();
-    if(wasMain) await syncProductMainImage(img.product_id, imageUrl);
     renderImageManager(img.product_id);
     renderProducts();
     toast(wasMain ? 'Main image replaced' : 'Image replaced');
@@ -366,28 +394,34 @@ async function replaceImage(imageId, file){
 }
 
 async function deleteImage(imageId){
-  const img = PRODUCT_IMAGES.find(x=>x.id===imageId); if(!img) return;
+  let img = PRODUCT_IMAGES.find(x=>x.id===imageId);
+  if(!img) return;
   if(!confirm('Delete this image from the product gallery?')) return;
   try{
+    const {data:freshImg}=await sb.from('product_images').select('*').eq('id', imageId).maybeSingle();
+    if(freshImg) img = freshImg;
     const productId = img.product_id;
-    const wasMain = !!img.is_main || (PRODUCTS.find(p=>p.id===productId)?.image_url === img.image_url);
+    const prod = PRODUCTS.find(p=>p.id===productId) || await fetchFreshProduct(productId) || {};
+    const wasMain = !!img.is_main || String(prod.image_url || '') === String(img.image_url || '');
+    const oldStoragePath = img.storage_path || '';
+
     const {error}=await sb.from('product_images').delete().eq('id',imageId);
     if(error) throw error;
-    if(img.storage_path){ await sb.storage.from('products').remove([img.storage_path]).catch(()=>{}); }
+    if(oldStoragePath){ await sb.storage.from('products').remove([oldStoragePath]).catch(()=>{}); }
 
-    await loadProductImages();
-    const remaining = PRODUCT_IMAGES_BY_PRODUCT[productId] || [];
+    let remaining = await fetchFreshImages(productId);
     if(remaining.length){
       if(wasMain || !remaining.find(x=>x.is_main)){
-        await setMainImage(remaining[0].id);
+        const next = remaining.find(x=>!x.is_main) || remaining[0];
+        await setOnlyMainImage(productId, next.id, next.image_url);
+      }else{
+        const main = remaining.find(x=>x.is_main) || remaining[0];
+        await setOnlyMainImage(productId, main.id, main.image_url);
       }
     }else{
-      await sb.from('products').update({image_url:''}).eq('id',productId);
-      const p=PRODUCTS.find(x=>x.id===productId); if(p) p.image_url='';
-      const pimage=document.getElementById('pimage');
-      if(pimage && document.getElementById('pid')?.value === productId) pimage.value='';
+      await setOnlyMainImage(productId, null, '');
     }
-    await loadProducts();
+    await loadProductImages();
     renderImageManager(productId);
     renderProducts();
     toast('Image deleted');
@@ -456,10 +490,28 @@ async function saveProduct(e){
 }
 
 async function quickUpdate(id,field,value){
+  const product = PRODUCTS.find(x=>x.id===id);
+  const beforeStock = Number(product?.stock || 0);
   const payload = {[field]: field==='price'||field==='stock' ? Number(value) : value};
   const {error}=await sb.from('products').update(payload).eq('id',id);
   if(error){toast(error.message);return;}
-  const p=PRODUCTS.find(x=>x.id===id); if(p)p[field]=payload[field];
+  if(product) product[field]=payload[field];
+  if(field === 'stock' && beforeStock !== payload.stock){
+    try{
+      const session = await getSession();
+      await sb.from('inventory_history').insert({
+        product_id:id,
+        product_name:product?.name || '',
+        brand:product?.brand || '',
+        change_amount: payload.stock - beforeStock,
+        quantity_before: beforeStock,
+        quantity_after: payload.stock,
+        reason:'admin_adjustment',
+        note:'Stock updated from Products page',
+        changed_by:session?.user?.email || 'admin'
+      });
+    }catch(e){}
+  }
   toast('Updated');
 }
 

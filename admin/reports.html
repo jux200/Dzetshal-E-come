@@ -1,0 +1,8 @@
+<!DOCTYPE html><html><head><script src='js/common.js'></script><script>document.write(layout('Reports','reports',`
+<div class='grid three-col'>
+ <div class='panel'><div class='panel-head'><h2>Orders Report</h2></div><div class='panel-body'><p class='muted'>Export order history with customer, status, total and date.</p><button class='btn primary' data-report='orders'>Download Orders CSV</button></div></div>
+ <div class='panel'><div class='panel-head'><h2>Inventory Report</h2></div><div class='panel-body'><p class='muted'>Export products, price, stock, status and inventory value.</p><button class='btn primary' data-report='inventory'>Download Inventory CSV</button></div></div>
+ <div class='panel'><div class='panel-head'><h2>Customers Report</h2></div><div class='panel-body'><p class='muted'>Export customer summaries based on order history.</p><button class='btn primary' data-report='customers'>Download Customers CSV</button></div></div>
+</div>
+<div class='panel' style='margin-top:18px'><div class='panel-head'><h2>Report Preview</h2><button class='btn outline small' id='refreshBtn'>Refresh</button></div><div class='table-wrap'><table class='table'><thead><tr><th>Report</th><th>Records</th><th>Last Loaded</th></tr></thead><tbody id='reportPreview'></tbody></table></div></div>
+`))</script></head><body><script src='js/reports.js'></script></body></html>

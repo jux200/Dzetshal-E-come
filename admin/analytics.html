@@ -1,15 +1,40 @@
-<!DOCTYPE html><html><head><script src='js/common.js'></script><script>document.write(layout('Analytics','analytics',`
-<div class='kpi-grid grid'>
- <div class='kpi accent'><div class='label'>Total Revenue</div><div class='value' id='totalRevenue'>RWF 0</div><div class='sub'>Loaded orders</div></div>
- <div class='kpi'><div class='label'>Total Orders</div><div class='value' id='totalOrders'>0</div><div class='sub'>All statuses</div></div>
- <div class='kpi'><div class='label'>Average Order</div><div class='value' id='averageOrder'>RWF 0</div><div class='sub'>Revenue / orders</div></div>
- <div class='kpi warn'><div class='label'>Inventory Value</div><div class='value' id='inventoryValue'>RWF 0</div><div class='sub'>Price × stock</div></div>
+<!DOCTYPE html><html><head><script src='js/common.js'></script><script>document.write(layout('Smart Analytics','analytics',`
+<div class='toolbar analytics-toolbar'>
+  <div class='toolbar-left'>
+    <select id='rangeSelect'>
+      <option value='7'>Last 7 days</option>
+      <option value='30' selected>Last 30 days</option>
+      <option value='90'>Last 90 days</option>
+      <option value='365'>This year</option>
+      <option value='custom'>Custom range</option>
+    </select>
+    <input type='date' id='dateFrom' class='hidden-control'>
+    <input type='date' id='dateTo' class='hidden-control'>
+    <button class='btn outline small' id='applyRange'>Apply</button>
+  </div>
+  <div class='toolbar-right'>
+    <button class='btn outline' id='exportAnalytics'>Export CSV</button>
+    <button class='btn primary' id='refreshBtn'>Refresh</button>
+  </div>
 </div>
-<div class='grid split'>
- <div class='panel'><div class='panel-head'><h2>Revenue by Day</h2><button class='btn outline small' id='refreshBtn'>Refresh</button></div><div class='panel-body'><canvas id='analyticsRevenue' height='140'></canvas></div></div>
+<div class='kpi-grid grid analytics-kpis'>
+ <div class='kpi accent'><div class='label'>Revenue</div><div class='value' id='totalRevenue'>RWF 0</div><div class='sub' id='revenueSub'>Selected period</div></div>
+ <div class='kpi'><div class='label'>Orders</div><div class='value' id='totalOrders'>0</div><div class='sub' id='ordersSub'>Selected period</div></div>
+ <div class='kpi'><div class='label'>Average Order</div><div class='value' id='averageOrder'>RWF 0</div><div class='sub'>Revenue / orders</div></div>
+ <div class='kpi warn'><div class='label'>Repeat Customers</div><div class='value' id='repeatCustomers'>0%</div><div class='sub'>By email/phone/name</div></div>
+ <div class='kpi'><div class='label'>Inventory Value</div><div class='value' id='inventoryValue'>RWF 0</div><div class='sub'>All active products</div></div>
+ <div class='kpi'><div class='label'>Low Stock</div><div class='value' id='lowStockCount'>0</div><div class='sub'>5 units or less</div></div>
+ <div class='kpi'><div class='label'>Out of Stock</div><div class='value' id='outStockCount'>0</div><div class='sub'>Needs attention</div></div>
+ <div class='kpi'><div class='label'>Inventory Health</div><div class='value' id='healthScore'>0%</div><div class='sub'>Stock coverage score</div></div>
+</div>
+<div class='grid split analytics-grid'>
+ <div class='panel'><div class='panel-head'><h2>Revenue Trend</h2><span class='muted' id='trendInsight'>Loading…</span></div><div class='panel-body'><canvas id='analyticsRevenue' height='140'></canvas></div></div>
  <div class='panel'><div class='panel-head'><h2>Orders by Status</h2></div><div class='panel-body'><canvas id='statusChart' height='140'></canvas></div></div>
 </div>
-<div class='grid split' style='margin-top:18px'>
- <div class='panel'><div class='panel-head'><h2>Top Products</h2></div><div class='panel-body'><div class='stat-list' id='topProducts'></div></div></div>
+<div class='grid three-col analytics-lists'>
+ <div class='panel'><div class='panel-head'><h2>Best Sellers</h2></div><div class='panel-body'><div class='stat-list' id='topProducts'></div></div></div>
  <div class='panel'><div class='panel-head'><h2>Top Brands</h2></div><div class='panel-body'><div class='stat-list' id='topBrands'></div></div></div>
-</div>`))</script></head><body><script src='js/analytics.js'></script></body></html>
+ <div class='panel'><div class='panel-head'><h2>Top Customers</h2></div><div class='panel-body'><div class='stat-list' id='topCustomers'></div></div></div>
+</div>
+<div class='panel smart-panel'><div class='panel-head'><h2>Smart Business Insights</h2><a class='btn outline small' href='ai-insights.html'>Open AI Insights</a></div><div class='panel-body'><div class='insight-grid' id='analyticsInsights'></div></div></div>
+`))</script></head><body><script src='js/analytics.js'></script></body></html>

@@ -1,0 +1,5 @@
+<!DOCTYPE html><html><head><script src='js/common.js'></script><script>document.write(layout('Backups','backups',`
+<div class='panel'><div class='panel-head'><h2>Backup Snapshots</h2><button class='btn primary small' id='createBackupBtn'>Create Snapshot</button></div><div class='panel-body'><p class='muted'>This creates a lightweight snapshot record with counts. Full Supabase backups are still managed from Supabase dashboard.</p><div id='backupList'></div></div></div><div class='panel' style='margin-top:18px'><div class='panel-head'><h2>Manual Backup Checklist</h2></div><div class='panel-body'><div class='codebox quick-copy'>1. Supabase → Database → Backups
+2. Supabase → Storage → products/banners buckets
+3. Download latest project ZIP
+4. Keep EmailJS template IDs and Vercel environment notes</div></div></div>`))</script></head><body><script src='js/backups.js'></script></body></html>
