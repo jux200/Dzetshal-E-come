@@ -15,3 +15,7 @@ This update adapts Dzetshal for the current boutique workflow:
 - Backup snapshot helper
 
 Run `supabase/sprint6_practical_launch.sql` before testing the new admin pages.
+
+
+## Important business-rules migration
+After the practical-launch SQL, run `supabase/sprint6_1_cancelled_order_rules.sql`.

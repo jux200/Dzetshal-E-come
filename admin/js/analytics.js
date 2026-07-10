@@ -1,5 +1,22 @@
 
-let allOrders=[], allItems=[], allProducts=[], filteredOrders=[], filteredItems=[], charts=[];
+let allOrders=[], allItems=[], allProducts=[], periodOrders=[], filteredOrders=[], filteredItems=[], charts=[];
+
+function normalizedOrderStatus(order){
+  return String(order?.status || 'pending').trim().toLowerCase();
+}
+function normalizedPaymentStatus(order){
+  return String(order?.payment_status || '').trim().toLowerCase();
+}
+function isTerminalOrder(order){
+  return ['cancelled','canceled','refunded'].includes(normalizedOrderStatus(order));
+}
+function isRevenueOrder(order){
+  if(isTerminalOrder(order)) return false;
+  const status=normalizedOrderStatus(order);
+  const payment=normalizedPaymentStatus(order);
+  return payment === 'paid' || ['delivered','completed'].includes(status);
+}
+
 const DAY=24*60*60*1000;
 function esc(v){return String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));}
 function asDate(v){const d=new Date(v||Date.now()); return isNaN(d)?new Date():d;}
@@ -35,7 +52,8 @@ async function loadAnalytics(){
 }
 function renderAnalytics(){
   const {from,to,days}=getRange();
-  filteredOrders=allOrders.filter(o=>{const d=asDate(o.created_at);return d>=from&&d<=to;});
+  periodOrders=allOrders.filter(o=>{const d=asDate(o.created_at);return d>=from&&d<=to;});
+  filteredOrders=periodOrders.filter(isRevenueOrder);
   const ids=new Set(filteredOrders.map(o=>o.id));
   filteredItems=allItems.filter(i=>ids.has(i.order_id));
   renderKpis(days); renderRevenueChart(from,days); renderStatusChart(); renderTopProducts(); renderTopBrands(); renderTopCustomers(); renderInsights(days);
@@ -68,7 +86,7 @@ function renderRevenueChart(from,days){
   const c=document.getElementById('analyticsRevenue');
   if(window.Chart&&c){charts.push(new Chart(c,{type:'line',data:{labels:labels.map(d=>d.slice(5)),datasets:[{label:'Revenue',data:vals,tension:.35,fill:true,borderWidth:3}]},options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:x=>fmtMoney(x.parsed.y)}}},scales:{y:{ticks:{callback:v=>'RWF '+Number(v).toLocaleString()}},x:{grid:{display:false}}}}}));}
 }
-function renderStatusChart(){ const map={}; filteredOrders.forEach(o=>{const s=o.status||'pending'; map[s]=(map[s]||0)+1}); const c=document.getElementById('statusChart'); if(window.Chart&&c){charts.push(new Chart(c,{type:'doughnut',data:{labels:Object.keys(map),datasets:[{data:Object.values(map)}]},options:{plugins:{legend:{position:'bottom'}}}}));}}
+function renderStatusChart(){ const map={}; periodOrders.forEach(o=>{const s=o.status||'pending'; map[s]=(map[s]||0)+1}); const c=document.getElementById('statusChart'); if(window.Chart&&c){charts.push(new Chart(c,{type:'doughnut',data:{labels:Object.keys(map),datasets:[{data:Object.values(map)}]},options:{plugins:{legend:{position:'bottom'}}}}));}}
 function renderTopProducts(){ const map={}; filteredItems.forEach(i=>{const n=i.product_name||'Unknown'; if(!map[n]) map[n]={qty:0,total:0,brand:i.brand||''}; map[n].qty+=Number(i.quantity||0); map[n].total+=Number(i.line_total||0);}); const rows=Object.entries(map).sort((a,b)=>b[1].total-a[1].total).slice(0,10); document.getElementById('topProducts').innerHTML=rows.map(([n,v],i)=>`<div class='stat-row'><span><strong>#${i+1} ${esc(n)}</strong><div class='muted'>${esc(v.brand)}</div></span><span class='right'>${v.qty} sold<br><strong>${fmtMoney(v.total)}</strong></span></div>`).join('')||'<div class="empty compact">No sales yet.</div>';}
 function renderTopBrands(){ const map={}; filteredItems.forEach(i=>{const n=i.brand||'Unknown'; if(!map[n]) map[n]={qty:0,total:0}; map[n].qty+=Number(i.quantity||0); map[n].total+=Number(i.line_total||0);}); const rows=Object.entries(map).sort((a,b)=>b[1].total-a[1].total).slice(0,10); document.getElementById('topBrands').innerHTML=rows.map(([n,v],i)=>`<div class='stat-row'><span><strong>#${i+1} ${esc(n)}</strong><div class='muted'>${v.qty} items</div></span><strong>${fmtMoney(v.total)}</strong></div>`).join('')||'<div class="empty compact">No brand data yet.</div>';}
 function renderTopCustomers(){ const map={}; filteredOrders.forEach(o=>{const k=customerKey(o); if(!map[k]) map[k]={name:o.customer_name||'Customer',phone:o.customer_phone||'',email:o.customer_email||'',orders:0,total:0}; map[k].orders++; map[k].total+=Number(o.total||0);}); const rows=Object.values(map).sort((a,b)=>b.total-a.total).slice(0,10); document.getElementById('topCustomers').innerHTML=rows.map((c,i)=>`<div class='stat-row'><span><strong>#${i+1} ${esc(c.name)}</strong><div class='muted'>${esc(c.email||c.phone)}</div></span><span class='right'>${c.orders} orders<br><strong>${fmtMoney(c.total)}</strong></span></div>`).join('')||'<div class="empty compact">No customer data yet.</div>';}

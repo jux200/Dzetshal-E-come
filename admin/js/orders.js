@@ -5,6 +5,23 @@ let currentOrderId = null;
 const ORDER_STEPS = ['pending','confirmed','preparing','ready','out_for_delivery','delivered'];
 const ALL_STATUSES = ['pending','confirmed','preparing','ready','out_for_delivery','shipped','delivered','cancelled'];
 
+function normalizedOrderStatus(order){
+  return String(order?.status || 'pending').trim().toLowerCase();
+}
+function normalizedPaymentStatus(order){
+  return String(order?.payment_status || '').trim().toLowerCase();
+}
+function isTerminalOrder(order){
+  return ['cancelled','canceled','refunded'].includes(normalizedOrderStatus(order));
+}
+function isRevenueOrder(order){
+  if(isTerminalOrder(order)) return false;
+  const status=normalizedOrderStatus(order);
+  const payment=normalizedPaymentStatus(order);
+  return payment === 'paid' || ['delivered','completed'].includes(status);
+}
+
+
 function esc(value){
   return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
 }
@@ -104,7 +121,7 @@ function renderOrders(){
       <td>${items.length || (Array.isArray(o.items)?o.items.length:'')} item${(items.length||0)===1?'':'s'}<div class='muted truncate'>${esc(orderItemsText(o, items))}</div></td>
       <td><strong>${fmtMoney(o.total)}</strong><div class='muted'>${esc(o.payment_method||'')}</div></td>
       <td><span class='badge ${statusClass(o.status)}'>${esc(niceStatus(o.status))}</span></td>
-      <td class='actions'><button class='btn outline small' onclick='viewOrder("${o.id}")'>View</button><button class='btn primary small' onclick='quickAdvance("${o.id}")'>Next</button></td>
+      <td class='actions'><button class='btn outline small' onclick='viewOrder("${o.id}")'>View</button>${isTerminalOrder(o)||normalizedOrderStatus(o)==='delivered'?'':`<button class='btn primary small' onclick='quickAdvance("${o.id}")'>Next</button>`}</td>
     </tr>`;
   }).join('') || `<tr><td colspan='7' class='empty'>No orders found.</td></tr>`;
 }
@@ -151,7 +168,10 @@ async function renderOrderModal(order){
     </div>
     <section class='detail-card full'>
       <div class='section-head-row'><h3>Status Timeline</h3><span class='badge ${statusClass(order.status)}'>${esc(niceStatus(order.status))}</span></div>
-      <div class='timeline-actions'>${ALL_STATUSES.map(s => `<button class='status-chip ${String(order.status||'pending')===s?'active':''}' onclick='updateOrderStatus("${order.id}","${s}")'>${esc(niceStatus(s))}</button>`).join('')}</div>
+      <div class='timeline-actions'>${ALL_STATUSES.map(s => {
+        const locked=isTerminalOrder(order) && normalizedOrderStatus(order)!==s;
+        return `<button class='status-chip ${normalizedOrderStatus(order)===s?'active':''}' ${locked?'disabled title="Cancelled/refunded orders are terminal"':''} onclick='${locked?'return false':`updateOrderStatus("${order.id}","${s}")`}'>${esc(niceStatus(s))}</button>`;
+      }).join('')}</div>
       <div class='timeline'>${renderTimeline(order.status, history || [])}</div>
     </section>
     <section class='detail-card full'>
@@ -177,13 +197,21 @@ function renderTimeline(currentStatus, history){
 }
 
 async function updateOrderStatus(id, status){
+  const order=allOrders.find(o=>o.id===id);
+  if(!order) return;
+  if(isTerminalOrder(order) && normalizedOrderStatus(order)!==String(status).toLowerCase()){
+    toast('Cancelled/refunded orders are terminal and cannot be reopened.');
+    return;
+  }
+  if(['cancelled','canceled','refunded'].includes(String(status).toLowerCase()) && !isTerminalOrder(order)){
+    if(!window.confirm('Cancel this order? Its stock will be restored and it will be removed from Dispatch and revenue analytics.')) return;
+  }
   const {error} = await sb.from('orders').update({status, delivery_status: status, updated_at:new Date().toISOString()}).eq('id', id);
   if(error){ toast(error.message); return; }
   try{
     const session = await getSession();
     await sb.from('order_status_history').insert({order_id:id,status,changed_by:session?.user?.email || 'admin'});
   }catch(e){}
-  const order = allOrders.find(o => o.id === id);
   if(order){ order.status = status; order.delivery_status = status; order.updated_at = new Date().toISOString(); }
   renderOrders();
   if(currentOrderId === id){ await renderOrderModal(order); }

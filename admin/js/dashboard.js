@@ -1,4 +1,21 @@
 let orders=[], products=[], items=[], revenueChartInstance=null;
+
+function normalizedOrderStatus(order){
+  return String(order?.status || 'pending').trim().toLowerCase();
+}
+function normalizedPaymentStatus(order){
+  return String(order?.payment_status || '').trim().toLowerCase();
+}
+function isTerminalOrder(order){
+  return ['cancelled','canceled','refunded'].includes(normalizedOrderStatus(order));
+}
+function isRevenueOrder(order){
+  if(isTerminalOrder(order)) return false;
+  const status=normalizedOrderStatus(order);
+  const payment=normalizedPaymentStatus(order);
+  return payment === 'paid' || ['delivered','completed'].includes(status);
+}
+
 document.addEventListener('DOMContentLoaded',()=>{loadDashboard(); document.getElementById('refreshBtn')?.addEventListener('click',loadDashboard); try{sb.channel('orders-live-dashboard').on('postgres_changes',{event:'*',schema:'public',table:'orders'},()=>loadDashboard()).on('postgres_changes',{event:'*',schema:'public',table:'products'},()=>loadDashboard()).subscribe();}catch(e){}});
 async function loadDashboard(){
   await requireAdmin();
@@ -11,16 +28,22 @@ async function loadDashboard(){
   orders=o||[]; products=p||[]; items=i||[];
   renderStats(); renderRecent(); renderBest(); renderAlerts(); renderRevenueChart();
 }
-function uniqueCustomers(){const set=new Set(); orders.forEach(o=>set.add(o.customer_email||o.customer_phone||o.customer_name||o.id)); return set.size;}
+function uniqueCustomers(){
+  const set=new Set();
+  orders.filter(o=>!isTerminalOrder(o)).forEach(o=>set.add(o.customer_email||o.customer_phone||o.customer_name||o.id));
+  return set.size;
+}
 function renderStats(){
   const today=new Date().toISOString().slice(0,10);
-  const todayOrders=orders.filter(o=>(o.created_at||'').slice(0,10)===today);
-  const rev=todayOrders.reduce((s,o)=>s+Number(o.total||0),0);
-  const avg=orders.length?orders.reduce((s,o)=>s+Number(o.total||0),0)/orders.length:0;
+  const todayValidOrders=orders.filter(o=>!isTerminalOrder(o)&&(o.created_at||'').slice(0,10)===today);
+  const todayRevenueOrders=todayValidOrders.filter(isRevenueOrder);
+  const realizedOrders=orders.filter(isRevenueOrder);
+  const rev=todayRevenueOrders.reduce((s,o)=>s+Number(o.total||0),0);
+  const avg=realizedOrders.length?realizedOrders.reduce((s,o)=>s+Number(o.total||0),0)/realizedOrders.length:0;
   document.getElementById('todayRevenue').textContent=fmtMoney(rev);
-  document.getElementById('ordersToday').textContent=todayOrders.length;
-  document.getElementById('todayOrdersText').textContent=`${todayOrders.length} order${todayOrders.length===1?'':'s'} today`;
-  document.getElementById('pendingOrders').textContent=orders.filter(o=>(o.status||'pending')==='pending').length;
+  document.getElementById('ordersToday').textContent=todayValidOrders.length;
+  document.getElementById('todayOrdersText').textContent=`${todayValidOrders.length} valid order${todayValidOrders.length===1?'':'s'} today`;
+  document.getElementById('pendingOrders').textContent=orders.filter(o=>!isTerminalOrder(o)&&normalizedOrderStatus(o)==='pending').length;
   document.getElementById('totalProducts').textContent=products.filter(p=>(p.status||'active')==='active').length;
   document.getElementById('totalCustomers').textContent=uniqueCustomers();
   document.getElementById('avgOrder').textContent=fmtMoney(avg);
@@ -33,7 +56,8 @@ function renderRecent(){
   if(!box.innerHTML) box.innerHTML='<div class="empty compact">No orders yet.</div>';
 }
 function renderBest(){
-  const counts={}; items.forEach(i=>{const k=i.product_name||'Unknown'; if(!counts[k]) counts[k]={qty:0,total:0,brand:i.brand||''}; counts[k].qty+=Number(i.quantity||0); counts[k].total+=Number(i.line_total||0);});
+  const revenueOrderIds=new Set(orders.filter(isRevenueOrder).map(o=>o.id));
+  const counts={}; items.filter(i=>revenueOrderIds.has(i.order_id)).forEach(i=>{const k=i.product_name||'Unknown'; if(!counts[k]) counts[k]={qty:0,total:0,brand:i.brand||''}; counts[k].qty+=Number(i.quantity||0); counts[k].total+=Number(i.line_total||0);});
   const rows=Object.entries(counts).sort((a,b)=>b[1].qty-a[1].qty).slice(0,7);
   document.getElementById('bestSellers').innerHTML=rows.map(([name,v],idx)=>`<div class='stat-row'><span><strong>#${idx+1} ${name}</strong><div class='muted'>${v.brand||''}</div></span><span class='right'><strong>${v.qty} sold</strong><div class='muted'>${fmtMoney(v.total)}</div></span></div>`).join('')||'<div class="empty compact">No sales data yet.</div>';
 }
@@ -43,7 +67,7 @@ function renderAlerts(){
 }
 function renderRevenueChart(){
   const days=[...Array(14)].map((_,i)=>{const d=new Date(); d.setDate(d.getDate()-(13-i)); return d.toISOString().slice(0,10)});
-  const vals=days.map(day=>orders.filter(o=>(o.created_at||'').slice(0,10)===day).reduce((s,o)=>s+Number(o.total||0),0));
+  const vals=days.map(day=>orders.filter(o=>isRevenueOrder(o)&&(o.created_at||'').slice(0,10)===day).reduce((s,o)=>s+Number(o.total||0),0));
   const labels=days.map(d=>d.slice(5));
   const fallback=document.getElementById('revenueChart');
   fallback.innerHTML=vals.map((v,i)=>`<div class='bar' style='height:${Math.max(8,v/Math.max(...vals,1)*100)}%'><span>${labels[i]}</span></div>`).join('');
