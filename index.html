@@ -1146,6 +1146,10 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:2
 .checkout-success-meta{background:var(--ow);border:1px solid var(--bd);border-radius:10px;padding:14px;margin:18px 0;text-align:left;font-size:13px;color:var(--tm);line-height:1.7}
 .checkout-success-meta strong{color:var(--td)}
 .checkout-success-actions{display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap}
+.checkout-success-actions .btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.checkout-track-btn{flex:1 0 100%;min-height:48px;border-color:var(--g)!important;color:var(--g)!important;letter-spacing:.08em;text-transform:uppercase}
+.checkout-track-btn:hover{background:var(--g)!important;color:#fff!important}
+.checkout-track-note{font-size:12px!important;margin:10px 0 0!important;color:var(--tm)!important}
 .checkout-form-status{display:none;margin:12px 0 0;padding:11px 13px;border-radius:8px;font-size:13px;line-height:1.5}
 .checkout-form-status.ok{display:block;background:#e8f5f0;color:var(--g);border:1px solid #bfe3d7}
 .checkout-form-status.err{display:block;background:#fdecec;color:var(--red);border:1px solid #f3c1c1}
@@ -1359,9 +1363,9 @@ async function loadProductsFromSupabase(){
 
 
 <style id="brand-theme-runtime-css">
-.logo-brand-wordmark{display:block;height:auto;max-width:210px;object-fit:contain}
+.logo-brand-wordmark{display:block;height:auto;width:auto;max-width:160px;object-fit:contain}
 .logo-copy.brand-image-mode .logo-t,.logo-copy.brand-image-mode .logo-s{display:none!important}
-@media(max-width:760px){.logo-brand-wordmark{max-width:145px}.logo-wrap{gap:8px;min-width:0}.logo-emblem{width:54px;height:54px}}
+@media(max-width:760px){.logo-brand-wordmark{max-width:112px}.logo-wrap{gap:7px;min-width:0}.logo-emblem{width:50px;height:50px}}
 </style>
 
 </head>
@@ -2330,7 +2334,9 @@ async function loadProductsFromSupabase(){
       <div class="checkout-success-actions">
         <button class="btn btn-g" type="button" onclick="closeCheckoutSuccess()">Continue Shopping</button>
         <button class="btn btn-ol" type="button" onclick="window.open('https://wa.me/250795308453','_blank')">Contact WhatsApp</button>
+        <a class="btn btn-ol checkout-track-btn" id="checkoutTrackOrderBtn" href="track-order.html">🚚 Track Your Order</a>
       </div>
+      <p class="checkout-track-note">You can track your order anytime using your order number and checkout email or phone.</p>
     </div>
   </div>
 </div>
@@ -3779,6 +3785,11 @@ function showCheckoutSuccess(orderNumber, customerName, total){
   const meta = document.getElementById('checkoutSuccessMeta');
   if(meta){
     meta.innerHTML = `<strong>Order number:</strong> ${escapeHtml(orderNumber)}<br><strong>Customer:</strong> ${escapeHtml(customerName)}<br><strong>Total:</strong> ${escapeHtml(total)}<br><strong>Contact:</strong> +250 795 308 453`;
+  }
+  const trackBtn = document.getElementById('checkoutTrackOrderBtn');
+  if(trackBtn){
+    trackBtn.href = `track-order.html?order=${encodeURIComponent(orderNumber)}`;
+    trackBtn.setAttribute('aria-label', `Track order ${orderNumber}`);
   }
   const ov = document.getElementById('checkoutSuccessOv');
   if(ov){
@@ -6549,7 +6560,7 @@ document.addEventListener('error', function(e){
     let img=copy.querySelector('.logo-brand-wordmark');
     if(!img){ img=document.createElement('img'); img.className='logo-brand-wordmark'; img.alt='Dzetshal'; copy.prepend(img); }
     img.src=theme.logo_theme==='peach'?'img/brand-logo-peach.png':'img/brand-logo-green.png';
-    img.style.width=Math.max(110,Math.min(280,Number(theme.logo_size||180)))+'px';
+    img.style.width=Math.max(88,Math.min(160,Number(theme.logo_size||125)))+'px';
     img.style.display=theme.show_store_name===false?'none':'block';
     copy.classList.add('brand-image-mode');
    });
