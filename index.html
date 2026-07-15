@@ -1357,6 +1357,13 @@ async function loadProductsFromSupabase(){
 }
 </style>
 
+
+<style id="brand-theme-runtime-css">
+.logo-brand-wordmark{display:block;height:auto;max-width:210px;object-fit:contain}
+.logo-copy.brand-image-mode .logo-t,.logo-copy.brand-image-mode .logo-s{display:none!important}
+@media(max-width:760px){.logo-brand-wordmark{max-width:145px}.logo-wrap{gap:8px;min-width:0}.logo-emblem{width:54px;height:54px}}
+</style>
+
 </head>
 <body>
 
@@ -1504,6 +1511,7 @@ async function loadProductsFromSupabase(){
       <a href="#about" onclick="document.getElementById('about').scrollIntoView({behavior:'smooth'});return false">About</a>
       <a href="#gallery" onclick="document.getElementById('gallery').scrollIntoView({behavior:'smooth'});return false">Gallery</a>
       <a href="#contact" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'});return false">Contact</a>
+      <a href="track-order.html">Track Order</a>
     </nav>
     <div class="nav-r">
       <div class="nav-search">
@@ -2006,7 +2014,7 @@ async function loadProductsFromSupabase(){
         <li><a href="#">Home</a></li><li><a href="#products">Shop All</a></li>
         <li><a href="#about">About Us</a></li><li><a href="#contact">Contact</a></li>
         <li><a href="#">Privacy Policy</a></li><li><a href="#">Shipping Policy</a></li>
-        <li><a href="#">Returns Policy</a></li><li><a href="#contact">FAQ / Contact</a></li>
+        <li><a href="#">Returns Policy</a></li><li><a href="#contact">FAQ / Contact</a></li><li><a href="track-order.html">Track Order</a></li>
       </ul>
     </div>
     <div class="fc">
@@ -3817,6 +3825,34 @@ async function submitCheckoutEmailForm(event){
   const paymentMethod = (document.getElementById('coPayment')?.value || '').trim();
   const deliveryMethod = (document.getElementById('coDeliveryMethod')?.value || '').trim();
   const notes = (document.getElementById('coNotes')?.value || '').trim();
+
+  // Transport fields are optional and only used when Public transport is selected.
+  // Keep them defined for every checkout path so pickup/email/WhatsApp orders never fail.
+  const isTransportDelivery = deliveryMethod === 'Public transport';
+  const transportCompany = isTransportDelivery
+    ? (document.getElementById('coTransportCompany')?.value || '').trim()
+    : '';
+  const transportDestination = isTransportDelivery
+    ? (document.getElementById('coTransportDestination')?.value || '').trim()
+    : '';
+  const receiverName = isTransportDelivery
+    ? (document.getElementById('coReceiverName')?.value || '').trim()
+    : '';
+  const receiverPhone = isTransportDelivery
+    ? (document.getElementById('coReceiverPhone')?.value || '').trim()
+    : '';
+
+  if(isTransportDelivery){
+    const missing = [];
+    if(!transportCompany) missing.push('transport company');
+    if(!transportDestination) missing.push('destination');
+    if(!receiverName) missing.push('receiver name');
+    if(!receiverPhone) missing.push('receiver phone');
+    if(missing.length){
+      setCheckoutStatus(`Please provide: ${missing.join(', ')}.`, 'err');
+      return;
+    }
+  }
 
   const order = buildOrderSummary();
   const orderNumber = await generateOrderNumberFromSupabase();
@@ -6497,6 +6533,30 @@ document.addEventListener('error', function(e){
       document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closeModal(); closeAdmin(); } });
     }
   };
+})();
+</script>
+
+
+<script>
+(function(){
+ async function applyStorefrontBrandTheme(){
+  try{
+   const client=window.supabaseClient;
+   if(!client) return;
+   const {data}=await client.from('theme_settings').select('logo_theme,logo_size,show_store_name,show_tagline').eq('id','main').maybeSingle();
+   const theme=data||{};
+   document.querySelectorAll('.logo-copy').forEach(copy=>{
+    let img=copy.querySelector('.logo-brand-wordmark');
+    if(!img){ img=document.createElement('img'); img.className='logo-brand-wordmark'; img.alt='Dzetshal'; copy.prepend(img); }
+    img.src=theme.logo_theme==='peach'?'img/brand-logo-peach.png':'img/brand-logo-green.png';
+    img.style.width=Math.max(110,Math.min(280,Number(theme.logo_size||180)))+'px';
+    img.style.display=theme.show_store_name===false?'none':'block';
+    copy.classList.add('brand-image-mode');
+   });
+  }catch(e){ console.warn('Brand theme could not be loaded',e); }
+ }
+ document.addEventListener('DOMContentLoaded',applyStorefrontBrandTheme);
+ window.addEventListener('pageshow',applyStorefrontBrandTheme);
 })();
 </script>
 
