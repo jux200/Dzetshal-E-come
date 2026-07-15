@@ -1,0 +1,16 @@
+HTML files checked: 30
+Inline JavaScript blocks checked: 34
+JavaScript syntax errors: 0
+Missing static references: 10
+- index.html: img/attractive-seductive-sensual-stylish-woman-boho-dress-sitting-vintage-retro-cafe-holding-perfume_285396-6942.avif
+- index.html: img/360_F_419874276_nxcTtIsjxNAFVAj8hBkIIsCAkw8UuOHX.png
+- index.html: img/hx2LYQjsSVF5nVqucnwUwM-415-80.png
+- index.html: img/360_F_952803272_qz9ouhPSyNYCHa6EVKi15y37J2udYqaz.png
+- index.html: img/dzetshal boutique.jpeg
+- index.html: img/alb1.jpeg
+- index.html: img/alb2.jpeg
+- index.html: img/alb3.jpeg
+- index.html: img/alb4.jpeg
+- index.html: img/alb5.jpeg
+
+Note: missing /img references require the original image library before deployment.

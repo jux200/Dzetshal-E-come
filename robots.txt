@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 Disallow: /admin/
-Sitemap: https://www.dzetshal.com/sitemap.xml
+Sitemap: https://dzetshalrwanda.com/sitemap.xml
