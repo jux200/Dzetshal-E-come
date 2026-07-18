@@ -3604,9 +3604,8 @@ function renderCartDrawer(){
   }
   body.innerHTML=cart.map(c=>{
     const p=RAW.find(x=>x.sku===c.sku); if(!p)return'';
-    const img=getImg(c.sku);
     return `<div class="ci">
-      <div class="ci-th"><img src="${img}" alt="${p.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><svg style="display:none" width="36" height="36" viewBox="0 0 36 36" fill="none"><rect x="5" y="2" width="26" height="32" rx="3" fill="#e8e4de"/></svg></div>
+      <div class="ci-th">${imgTag(c.sku, escAttr(p.name), 'loading="lazy"')}<svg style="display:none" width="36" height="36" viewBox="0 0 36 36" fill="none"><rect x="5" y="2" width="26" height="32" rx="3" fill="#e8e4de"/></svg></div>
       <div class="ci-info">
         <div class="ci-brand">${p.brand}</div>
         <div class="ci-name">${p.name.length>46?p.name.slice(0,46)+'…':p.name}</div>
@@ -4212,7 +4211,7 @@ function renderWishDrawer(){
     const p=RAW.find(x=>x.sku===sku); if(!p)return'';
     const img=getImg(sku);
     return `<div class="ci">
-      <div class="ci-th"><img src="${img}" alt="${p.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><svg style="display:none" width="36" height="36" viewBox="0 0 36 36" fill="none"><rect x="5" y="2" width="26" height="32" rx="3" fill="#e8e4de"/></svg></div>
+      <div class="ci-th">${imgTag(c.sku, escAttr(p.name), 'loading="lazy"')}<svg style="display:none" width="36" height="36" viewBox="0 0 36 36" fill="none"><rect x="5" y="2" width="26" height="32" rx="3" fill="#e8e4de"/></svg></div>
       <div class="ci-info" style="flex:1">
         <div class="ci-brand">${p.brand}</div>
         <div class="ci-name">${p.name.length>44?p.name.slice(0,44)+'…':p.name}</div>
